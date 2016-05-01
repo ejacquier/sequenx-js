@@ -3,8 +3,9 @@
 
 module Sequenx
 {
-  export interface ISequence extends ICompletable
-  {
-    do(action: (lapse:ILapse) => void, ...params: any[]);
-  }
+    export interface ISequence extends ICompletable
+    {
+        add(action: (lapse: ILapse) => void, lapseDescription: string, timer?: number): void;
+        start(): void;
+}
 }

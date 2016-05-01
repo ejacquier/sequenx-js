@@ -30,9 +30,10 @@
     "files": [
         "./src/sequencing/ICompletable.ts",
         "./src/sequencing/ILapse.ts",
+        "./src/sequencing/impl/Lapse.ts",
+        "./src/sequencing/impl/Sequence.ts",
         "./src/sequencing/IParallel.ts",
         "./src/sequencing/ISequence.ts",
-        "./src/sequencing/Lapse.ts",
         "./typings/rx.d.ts"
     ],
     "atom": {

@@ -17,7 +17,11 @@ function start() {
   var subscription = lapse.completed.subscribe(
     function (x) { console.log('onNext: %s', x); },
     function (e) { console.log('onError: %s', e); },
-    function () { console.log('Lapse %s completed!', lapse.name); complete();}
+    function () {
+      console.log('Lapse %s completed!', lapse.name);
+      subscription.dispose();
+      complete();
+    }
   );
 
   extendLapse(lapse);

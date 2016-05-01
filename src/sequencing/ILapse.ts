@@ -3,8 +3,8 @@
 
 module Sequenx
 {
-  export interface ILapse extends ICompletable
-  {
-    extend(description: string):Rx.IDisposable;
-  }
+    export interface ILapse extends ICompletable
+    {
+        extend(description: string, timer?: number): Rx.IDisposable;
+    }
 }

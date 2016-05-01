@@ -1,5 +1,5 @@
-/// <reference path="./ICompletable.ts"/>
-/// <reference path="../../typings/rx.d.ts"/>
+/// <reference path="../ICompletable.ts"/>
+/// <reference path="../../../typings/rx.d.ts"/>
 
 module Sequenx
 {
@@ -35,7 +35,7 @@ module Sequenx
             }));
         }
 
-        public extend(description: string, timer?: any): Rx.IDisposable
+        public extend(description: string, timer?: number): Rx.IDisposable
         {
             console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
 
