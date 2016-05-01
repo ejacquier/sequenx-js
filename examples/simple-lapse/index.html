@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sequenx-js -- Simple Lapse Example</title>
+	<meta charset="UTF-8">
+
+  <script src="../../js/rx.lite.min.js"></script>
+	<script src="../../js/sequenx.js"></script>
+
+<script>
+
+function start() {
+
+  //Create a lapse
+  var lapse = new Sequenx.Lapse('simple-lapse');
+
+  var subscription = lapse.completed.subscribe(
+    function (x) { console.log('onNext: %s', x); },
+    function (e) { console.log('onError: %s', e); },
+    function () { console.log('Lapse %s completed!', lapse.name); complete();}
+  );
+
+  extendLapse(lapse);
+  lapse.dispose();
+}
+
+function extendLapse(lapse)
+{
+  // Simplest usage is to extend and then dispose when done
+  var disposable1 = lapse.extend('timer-3000');
+  setTimeout(function(){ disposable1.dispose() }, 3000);
+
+  // You can extend as many time as you want, they will be executed in parallel
+  // lapse.completed will always be called when all extension are finished
+  var disposable2 = lapse.extend('timer-6000');
+  setTimeout(function(){ disposable2.dispose() }, 6000);
+}
+
+function complete()
+{
+  console.log('Lapse is completed, now do stuffs');
+  document.body.style.backgroundColor = '#00FF00';
+}
+
+start();
+
+</script>
+</head>
+<body>
+
+</body>
+
+</html>

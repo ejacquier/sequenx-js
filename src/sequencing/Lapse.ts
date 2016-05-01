@@ -9,7 +9,7 @@ module Sequenx
         private static nextId: number = 0;
 
         private _refCountDisposable: Rx.RefCountDisposable;
-        private _completedSubject: Rx.Subject<any> = Rx.Subject.create();
+        private _completedSubject: Rx.Subject<any> = new Rx.Subject<any>();
 
         public name: string;
         public id: number;
