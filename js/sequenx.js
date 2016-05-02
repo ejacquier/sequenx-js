@@ -9,22 +9,25 @@ var Sequenx;
         function Lapse(name) {
             var _this = this;
             this._completedSubject = new Rx.Subject();
+            this._extensionReleaseSubject = new Rx.Subject();
             this._started = false;
             this.name = name;
             if (name == "empty") {
                 return;
             }
             this.id = Lapse.nextId++;
-            console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
+            if (Lapse.VERBOSE)
+                console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(function () {
-                console.log("Lapse " + _this.name + " (" + _this.id + ") COMPLETED");
+                if (Lapse.VERBOSE)
+                    console.log("Lapse " + _this.name + " (" + _this.id + ") COMPLETED");
                 _this._completedSubject.onCompleted();
+                _this._extensionReleaseSubject.onCompleted();
                 _this._disposables = null;
                 _this.dispose();
             }));
-            if (this._disposables == null) {
+            if (this._disposables == null)
                 this._disposables = new Rx.CompositeDisposable();
-            }
         }
         Object.defineProperty(Lapse.prototype, "completed", {
             get: function () {
@@ -33,16 +36,25 @@ var Sequenx;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Lapse.prototype, "extensionReleased", {
+            get: function () {
+                return this._extensionReleaseSubject;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Lapse.prototype.extend = function (description, timer) {
             var _this = this;
-            console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
+            if (Lapse.VERBOSE)
+                console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
             if (this._refCountDisposable != null) {
                 if (this._refCountDisposable.isDisposed)
                     console.error("Extending disposed lapse: " + this.name + " (" + this.id + ")");
                 var disposable_1 = this._refCountDisposable.getDisposable();
                 var reference = Rx.Disposable.create(function () {
-                    console.log("Lapse " + _this.name + " (" + _this.id + ") RELEASED ----- " + description);
-                    _this._completedSubject.onNext(description);
+                    if (Lapse.VERBOSE)
+                        console.log("Lapse " + _this.name + " (" + _this.id + ") RELEASED ----- " + description);
+                    _this._extensionReleaseSubject.onNext(description);
                     disposable_1.dispose();
                 });
                 this._disposables.add(reference);
@@ -66,9 +78,11 @@ var Sequenx;
             this._disposables = null;
             this._refCountDisposable = null;
             this._completedSubject.dispose();
+            this._extensionCompletedSubject.dispose();
         };
-        Lapse.Empty = new Lapse("empty");
-        Lapse.nextId = 0;
+        Lapse.EMPTY = new Lapse("empty");
+        Lapse.VERBOSE = false;
+        Lapse.nextId = 1;
         return Lapse;
     }());
     Sequenx.Lapse = Lapse;

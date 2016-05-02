@@ -5,11 +5,13 @@ module Sequenx
 {
     export class Lapse implements ILapse, Rx.IDisposable
     {
-        public static Empty: ILapse = new Lapse("empty");
-        private static nextId: number = 0;
+        public static EMPTY: ILapse = new Lapse("empty");
+        public static VERBOSE: boolean = false;
+        private static nextId: number = 1;
 
         private _refCountDisposable: Rx.RefCountDisposable;
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
+        private _extensionReleaseSubject: Rx.Subject<string> = new Rx.Subject<string>();
         private _disposables: Rx.CompositeDisposable;
         private _started: boolean = false;
 
@@ -19,6 +21,11 @@ module Sequenx
         get completed(): Rx.IObservable<any>
         {
             return this._completedSubject;
+        }
+
+        get extensionReleased(): Rx.IObservable<any>
+        {
+            return this._extensionReleaseSubject;
         }
 
         constructor(name: string)
@@ -33,29 +40,31 @@ module Sequenx
 
             this.id = Lapse.nextId++;
 
-            console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
+            if (Lapse.VERBOSE)
+                console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
 
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() =>
             {
-                console.log("Lapse " + this.name + " (" + this.id + ") COMPLETED");
+                if (Lapse.VERBOSE)
+                    console.log("Lapse " + this.name + " (" + this.id + ") COMPLETED");
 
                 this._completedSubject.onCompleted();
+                this._extensionReleaseSubject.onCompleted();
 
+                //clear disposables since they're only used when we want to interrupt the Lapse
                 this._disposables = null;
 
                 this.dispose();
             }));
 
             if (this._disposables == null)
-            {
                 this._disposables = new Rx.CompositeDisposable();
-            }
-
         }
 
         public extend(description: string, timer?: number): Rx.IDisposable
         {
-            console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
+            if (Lapse.VERBOSE)
+                console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
 
             if (this._refCountDisposable != null)
             {
@@ -65,8 +74,9 @@ module Sequenx
                 const disposable = this._refCountDisposable.getDisposable();
                 const reference = Rx.Disposable.create(() =>
                 {
-                    console.log("Lapse " + this.name + " (" + this.id + ") RELEASED ----- " + description);
-                    this._completedSubject.onNext(description);
+                    if (Lapse.VERBOSE)
+                        console.log("Lapse " + this.name + " (" + this.id + ") RELEASED ----- " + description);
+                    this._extensionReleaseSubject.onNext(description);
 
                     disposable.dispose();
                 });
@@ -75,7 +85,6 @@ module Sequenx
 
                 return reference;
             }
-
             return Rx.Disposable.empty;
         }
 
@@ -102,6 +111,7 @@ module Sequenx
             this._disposables = null;
             this._refCountDisposable = null;
             this._completedSubject.dispose();
+            this._extensionCompletedSubject.dispose();
         }
     }
 }

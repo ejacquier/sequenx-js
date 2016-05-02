@@ -17,14 +17,18 @@ function start() {
   lapse = new Sequenx.Lapse('simple-lapse');
 
   var subscription = lapse.completed.subscribe(
-    function (x) { console.warn('Lapse extension finished: %s', x); },
-    function (e) { console.log('onError: %s', e); },
+    function () {},
+    null,
     function () {
       console.log('Lapse %s completed!', lapse.name);
       subscription.dispose();
       complete();
     }
   );
+
+	var extensionCompleted = lapse.extensionCompleted.subscribe(
+			function (x) { console.warn('Lapse extension finished: %s', x); }
+	);
 
   extendLapse(lapse);
   lapse.start();
