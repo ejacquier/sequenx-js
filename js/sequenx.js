@@ -1,3 +1,8 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Sequenx;
 (function (Sequenx) {
     var Lapse = (function () {
@@ -9,7 +14,6 @@ var Sequenx;
             console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(function () {
                 console.log("Lapse " + _this.name + " (" + _this.id + ") COMPLETED");
-                _this._completedSubject.onNext(null);
                 _this._completedSubject.onCompleted();
             }));
         }
@@ -29,6 +33,7 @@ var Sequenx;
                 var disposable_1 = this._refCountDisposable.getDisposable();
                 return Rx.Disposable.create(function () {
                     console.log("Lapse " + _this.name + " (" + _this.id + ") RELEASED ----- " + description);
+                    _this._completedSubject.onNext(description);
                     disposable_1.dispose();
                 });
             }
@@ -52,6 +57,7 @@ var Sequenx;
             this.name = name;
             this._lapse = lapse;
             this._items = new Array();
+            console.log('Create sequence ' + name);
         }
         Object.defineProperty(Sequence.prototype, "completed", {
             get: function () {
@@ -63,6 +69,14 @@ var Sequenx;
         Sequence.prototype.add = function (action, lapseDescription, timer) {
             this._items.push(new SequenceItem(action, lapseDescription, timer));
         };
+        Sequence.prototype.addParallel = function (action, name) {
+            var lapse = new Sequenx.Lapse("parallel:" + name);
+            var parallel = new Sequenx.Parallel(name, lapse);
+            action(parallel);
+            var sequenceItem = new SequenceItem(null, lapse.name, null);
+            sequenceItem.parallel = parallel;
+            this._items.push(sequenceItem);
+        };
         Sequence.prototype.start = function () {
             console.log("Starting sequence " + this.name);
             if (this._items.length > 0)
@@ -73,17 +87,46 @@ var Sequenx;
         Sequence.prototype.doItem = function (item) {
             var _this = this;
             console.log("Sequence doItem " + item.toString());
-            var lapse = new Sequenx.Lapse(item.lapseDescription);
-            lapse.completed.subscribe(function () { }, null, function () {
-                console.log('Sequence item finished ' + item.lapseDescription);
-                _this._completedSubject.onNext(item.lapseDescription);
-                if (_this._items.length > 0)
-                    _this.doItem(_this._items.shift());
-                else
+            var lapse;
+            if (this instanceof Sequenx.Parallel) {
+                lapse = this._lapse;
+                lapse.completed.subscribe(function (nextItem) {
+                    _this._completedSubject.onNext(nextItem);
+                }, null, function () {
+                    console.log('Parallel sequence finished ' + item.lapseDescription);
                     _this.onSequenceComplete();
-            });
-            item.action(lapse);
-            lapse.dispose();
+                });
+                item.action(lapse);
+                for (var i = 0; i < this._items.length; i++) {
+                    this._items[i].action(lapse);
+                }
+                lapse.dispose();
+            }
+            else if (item.parallel != null) {
+                item.parallel.completed.subscribe(function () { }, null, function () {
+                    console.log('Parallel finished ' + item.lapseDescription);
+                    _this._completedSubject.onNext(item.lapseDescription);
+                    if (_this._items.length > 0)
+                        _this.doItem(_this._items.shift());
+                    else
+                        _this.onSequenceComplete();
+                });
+                item.parallel.start();
+                item.parallel._lapse.dispose();
+            }
+            else {
+                lapse = new Sequenx.Lapse(item.lapseDescription);
+                lapse.completed.subscribe(function () { }, null, function () {
+                    console.log('Sequence item finished ' + item.lapseDescription);
+                    _this._completedSubject.onNext(item.lapseDescription);
+                    if (_this._items.length > 0)
+                        _this.doItem(_this._items.shift());
+                    else
+                        _this.onSequenceComplete();
+                });
+                item.action(lapse);
+                lapse.dispose();
+            }
         };
         Sequence.prototype.onSequenceComplete = function () {
             console.log("onSequenceComplete " + this.name);
@@ -97,6 +140,7 @@ var Sequenx;
     var SequenceItem = (function () {
         function SequenceItem(action, lapseDescription, timer) {
             this.timer = null;
+            this.parallel = null;
             this.action = action;
             this.lapseDescription = lapseDescription;
             this.timer = timer;
@@ -106,5 +150,16 @@ var Sequenx;
         };
         return SequenceItem;
     }());
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    var Parallel = (function (_super) {
+        __extends(Parallel, _super);
+        function Parallel() {
+            _super.apply(this, arguments);
+        }
+        return Parallel;
+    }(Sequenx.Sequence));
+    Sequenx.Parallel = Parallel;
 })(Sequenx || (Sequenx = {}));
 //# sourceMappingURL=sequenx.js.map

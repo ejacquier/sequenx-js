@@ -15,7 +15,7 @@ function start() {
   var sequence = new Sequenx.Sequence('simple-sequence', lapse);
 
   var subscription = sequence.completed.subscribe(
-    function (x) { console.log('onNext: %s', x); },
+    function (x) { console.warn('onNext: %s', x); },
     function (e) { console.log('onError: %s', e); },
     function () {
       console.log('Sequence %s completed!', sequence.name);
@@ -24,12 +24,28 @@ function start() {
     }
   );
 
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv1');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv2');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
+	sequence.add(waitForOneSecond, 'waitForOneSecond1');
+	sequence.add(waitForOneSecond, 'waitForOneSecond2');
+
+	sequence.addParallel(function (p){
+		p.add(createRandomDiv, 'parallel-createRandomDiv1');
+		p.add(createRandomDiv, 'parallel-createRandomDiv2');
+		p.add(createRandomDiv, 'parallel-createRandomDiv3');
+		p.add(createRandomDiv, 'parallel-createRandomDiv4');
+		p.add(createRandomDiv, 'parallel-createRandomDiv5');
+	}, "simple-parallel");
+
+	sequence.add(waitForOneSecond, 'waitForOneSecond3');
 	sequence.add(createRandomDiv, 'createRandomDiv3');
+	sequence.add(waitForOneSecond, 'waitForOneSecond4');
+	sequence.add(createRandomDiv, 'createRandomDiv4');
+	sequence.add(waitForOneSecond, 'waitForOneSecond5');
+	sequence.add(createRandomDiv, 'createRandomDiv5');
+	sequence.add(waitForOneSecond, 'waitForOneSecond6');
+	sequence.add(createRandomDiv, 'createRandomDiv6');
+	sequence.add(waitForOneSecond, 'waitForOneSecond7');
+	sequence.add(createRandomDiv, 'createRandomDiv7');
+	sequence.add(createRandomDiv, 'createRandomDiv8');
 
 	sequence.start();
 }
@@ -56,6 +72,7 @@ function createRandomDiv(lapse)
 	div.style.left = xy[1] + 'px';
 	div.style.backgroundColor = "#" + ((1 << 24) * Math.random() | 0).toString(16);
 
+
 	disposable.dispose();
 }
 
@@ -67,11 +84,10 @@ function getRandomPosition(element) {
 	return [randomX,randomY];
 }
 
-
 function complete()
 {
   console.log('Lapse is completed, now do stuffs');
-  document.body.style.backgroundColor = '#00FF00';
+  document.body.style.backgroundColor = '#000000';
 }
 
 start();

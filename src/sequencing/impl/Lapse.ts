@@ -30,7 +30,6 @@ module Sequenx
             {
                 console.log("Lapse " + this.name + " (" + this.id + ") COMPLETED");
 
-                this._completedSubject.onNext(null);
                 this._completedSubject.onCompleted();
             }));
         }
@@ -48,6 +47,7 @@ module Sequenx
                 return Rx.Disposable.create(() =>
                 {
                     console.log("Lapse " + this.name + " (" + this.id + ") RELEASED ----- " + description);
+                    this._completedSubject.onNext(description);
 
                     disposable.dispose();
                 });
