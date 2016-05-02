@@ -33,6 +33,7 @@ function start() {
 		p.add(createRandomDiv, 'parallel-createRandomDiv3');
 		p.add(createRandomDiv, 'parallel-createRandomDiv4');
 		p.add(createRandomDiv, 'parallel-createRandomDiv5');
+		p.add(waitForOneSecond, 'waitForOneSecond-prallel');
 	}, "simple-parallel");
 
 	sequence.add(waitForOneSecond, 'waitForOneSecond3');

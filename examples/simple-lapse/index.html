@@ -9,13 +9,15 @@
 
 <script>
 
+var lapse;
+
 function start() {
 
   //Create a lapse
-  var lapse = new Sequenx.Lapse('simple-lapse');
+  lapse = new Sequenx.Lapse('simple-lapse');
 
   var subscription = lapse.completed.subscribe(
-    function (x) { console.log('onNext: %s', x); },
+    function (x) { console.warn('Lapse extension finished: %s', x); },
     function (e) { console.log('onError: %s', e); },
     function () {
       console.log('Lapse %s completed!', lapse.name);
@@ -25,7 +27,7 @@ function start() {
   );
 
   extendLapse(lapse);
-  lapse.dispose();
+  lapse.start();
 }
 
 function extendLapse(lapse)

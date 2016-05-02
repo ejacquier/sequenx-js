@@ -9,13 +9,22 @@ var Sequenx;
         function Lapse(name) {
             var _this = this;
             this._completedSubject = new Rx.Subject();
+            this._started = false;
             this.name = name;
+            if (name == "empty") {
+                return;
+            }
             this.id = Lapse.nextId++;
             console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(function () {
                 console.log("Lapse " + _this.name + " (" + _this.id + ") COMPLETED");
                 _this._completedSubject.onCompleted();
+                _this._disposables = null;
+                _this.dispose();
             }));
+            if (this._disposables == null) {
+                this._disposables = new Rx.CompositeDisposable();
+            }
         }
         Object.defineProperty(Lapse.prototype, "completed", {
             get: function () {
@@ -31,17 +40,32 @@ var Sequenx;
                 if (this._refCountDisposable.isDisposed)
                     console.error("Extending disposed lapse: " + this.name + " (" + this.id + ")");
                 var disposable_1 = this._refCountDisposable.getDisposable();
-                return Rx.Disposable.create(function () {
+                var reference = Rx.Disposable.create(function () {
                     console.log("Lapse " + _this.name + " (" + _this.id + ") RELEASED ----- " + description);
                     _this._completedSubject.onNext(description);
                     disposable_1.dispose();
                 });
+                this._disposables.add(reference);
+                return reference;
             }
             return Rx.Disposable.empty;
         };
+        Lapse.prototype.start = function () {
+            this._started = true;
+            this._refCountDisposable.dispose();
+        };
         Lapse.prototype.dispose = function () {
-            if (this._refCountDisposable != null)
-                this._refCountDisposable.dispose();
+            if (!this._started) {
+                console.error("Trying to dipose a Lapse not yet started!");
+                return;
+            }
+            if (this._disposables != null) {
+                console.warn("Lapse " + this.name + " (" + this.id + ") INTERRUPTED ----- ");
+                this._disposables.dispose();
+            }
+            this._disposables = null;
+            this._refCountDisposable = null;
+            this._completedSubject.dispose();
         };
         Lapse.Empty = new Lapse("empty");
         Lapse.nextId = 0;
@@ -99,7 +123,7 @@ var Sequenx;
                 for (var i = 0; i < this._items.length; i++) {
                     this._items[i].action(lapse);
                 }
-                lapse.dispose();
+                lapse.start();
             }
             else if (item.parallel != null) {
                 item.parallel.completed.subscribe(function () { }, null, function () {
@@ -110,7 +134,7 @@ var Sequenx;
                         _this.onSequenceComplete();
                 });
                 item.parallel.start();
-                item.parallel._lapse.dispose();
+                item.parallel._lapse.start();
             }
             else {
                 lapse = new Sequenx.Lapse(item.lapseDescription);
@@ -122,7 +146,7 @@ var Sequenx;
                         _this.onSequenceComplete();
                 });
                 item.action(lapse);
-                lapse.dispose();
+                lapse.start();
             }
         };
         Sequence.prototype.onSequenceComplete = function () {

@@ -9,9 +9,11 @@
 
 <script>
 
+var lapse;
+
 function start() {
 
-	var lapse = new Sequenx.Lapse('simple-lapse-sequence');
+	lapse = new Sequenx.Lapse('simple-lapse-sequence');
   var sequence = new Sequenx.Sequence('simple-sequence', lapse);
 
   var subscription = sequence.completed.subscribe(
@@ -32,6 +34,8 @@ function start() {
 	sequence.add(createRandomDiv, 'createRandomDiv3');
 
 	sequence.start();
+
+	lapse.start();
 }
 
 function waitForOneSecond(lapse)

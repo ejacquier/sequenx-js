@@ -77,7 +77,7 @@ module Sequenx
                     this._items[i].action(lapse);
                 }
 
-                lapse.dispose();
+                lapse.start();
             }
             else if (item.parallel != null) //start the parallel sequenceItem
             {
@@ -92,7 +92,7 @@ module Sequenx
                         this.onSequenceComplete();
                 });
                 item.parallel.start();
-                (<Sequence>item.parallel)._lapse.dispose();
+                (<Sequence>item.parallel)._lapse.start();
             }
             else //process the sequenceItem
             {
@@ -110,10 +110,8 @@ module Sequenx
                         this.onSequenceComplete();
                 });
                 item.action(lapse);
-                lapse.dispose();
+                lapse.start();
             }
-
-
         }
 
         private onSequenceComplete()
