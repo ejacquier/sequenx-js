@@ -15,7 +15,7 @@ function start() {
   var sequence = new Sequenx.Sequence('simple-sequence', lapse);
 
   var subscription = sequence.completed.subscribe(
-    function (x) { console.log('onNext: %s', x); },
+    function (x) { console.warn('Sequence item finished: %s', x); },
     function (e) { console.log('onError: %s', e); },
     function () {
       console.log('Sequence %s completed!', sequence.name);

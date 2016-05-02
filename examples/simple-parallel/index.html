@@ -15,7 +15,7 @@ function start() {
   var sequence = new Sequenx.Sequence('simple-sequence', lapse);
 
   var subscription = sequence.completed.subscribe(
-    function (x) { console.warn('onNext: %s', x); },
+    function (x) { console.warn('Sequence item finished: %s', x); },
     function (e) { console.log('onError: %s', e); },
     function () {
       console.log('Sequence %s completed!', sequence.name);
@@ -48,18 +48,20 @@ function start() {
 	sequence.add(createRandomDiv, 'createRandomDiv8');
 
 	sequence.start();
+
+	lapse.dispose();
 }
 
 function waitForOneSecond(lapse)
 {
-	console.log('waitForOneSecond!', lapse.name);
+	//console.log('waitForOneSecond!', lapse.name);
 	var disposable1 = lapse.extend('timer-1000');
   setTimeout(function(){ disposable1.dispose() }, 1000);
 }
 
 function createRandomDiv(lapse)
 {
-	console.log('createRandomDiv!', lapse.name);
+	//console.log('createRandomDiv!', lapse.name);
 	var disposable = lapse.extend('create-random-div');
 
 	var div = document.createElement('div');

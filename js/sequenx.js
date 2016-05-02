@@ -93,7 +93,6 @@ var Sequenx;
                 lapse.completed.subscribe(function (nextItem) {
                     _this._completedSubject.onNext(nextItem);
                 }, null, function () {
-                    console.log('Parallel sequence finished ' + item.lapseDescription);
                     _this.onSequenceComplete();
                 });
                 item.action(lapse);
@@ -104,7 +103,6 @@ var Sequenx;
             }
             else if (item.parallel != null) {
                 item.parallel.completed.subscribe(function () { }, null, function () {
-                    console.log('Parallel finished ' + item.lapseDescription);
                     _this._completedSubject.onNext(item.lapseDescription);
                     if (_this._items.length > 0)
                         _this.doItem(_this._items.shift());
@@ -117,7 +115,6 @@ var Sequenx;
             else {
                 lapse = new Sequenx.Lapse(item.lapseDescription);
                 lapse.completed.subscribe(function () { }, null, function () {
-                    console.log('Sequence item finished ' + item.lapseDescription);
                     _this._completedSubject.onNext(item.lapseDescription);
                     if (_this._items.length > 0)
                         _this.doItem(_this._items.shift());
@@ -129,7 +126,6 @@ var Sequenx;
             }
         };
         Sequence.prototype.onSequenceComplete = function () {
-            console.log("onSequenceComplete " + this.name);
             this._completedSubject.onCompleted();
         };
         Sequence.prototype.dispose = function () {

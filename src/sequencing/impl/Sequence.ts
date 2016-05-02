@@ -56,7 +56,7 @@ module Sequenx
         {
             console.log("Sequence doItem " + item.toString());
 
-            //TODO Refractor this working mess :(
+            //TODO Refractor this (working) mess :(
 
             let lapse;
             if (this instanceof Parallel) //if we are in a Parallel sequence, reuse the same lapse
@@ -67,7 +67,7 @@ module Sequenx
                     this._completedSubject.onNext(nextItem);
                 }, null, () =>
                     {
-                        console.log('Parallel sequence finished ' + item.lapseDescription);
+                        //console.log('Parallel sequence finished ' + item.lapseDescription);
 
                         this.onSequenceComplete();
                     });
@@ -83,7 +83,7 @@ module Sequenx
             {
                 item.parallel.completed.subscribe(() => { }, null, () =>
                 {
-                    console.log('Parallel finished ' + item.lapseDescription);
+                    //console.log('Parallel finished ' + item.lapseDescription);
 
                     this._completedSubject.onNext(item.lapseDescription);
                     if (this._items.length > 0)
@@ -101,7 +101,7 @@ module Sequenx
 
                 lapse.completed.subscribe(() => { }, null, () =>
                 {
-                    console.log('Sequence item finished ' + item.lapseDescription);
+                    //console.log('Sequence item finished ' + item.lapseDescription);
 
                     this._completedSubject.onNext(item.lapseDescription);
                     if (this._items.length > 0)
@@ -118,7 +118,7 @@ module Sequenx
 
         private onSequenceComplete()
         {
-            console.log("onSequenceComplete " + this.name);
+            //console.log("onSequenceComplete " + this.name);
             this._completedSubject.onCompleted();
         }
 
