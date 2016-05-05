@@ -9,7 +9,7 @@ var Sequenx;
         function Lapse(name) {
             var _this = this;
             this._completedSubject = new Rx.Subject();
-            this._extensionReleaseSubject = new Rx.Subject();
+            this._extensionCompletedSubject = new Rx.Subject();
             this._started = false;
             this.name = name;
             if (name == "empty") {
@@ -22,7 +22,7 @@ var Sequenx;
                 if (Lapse.VERBOSE)
                     console.log("Lapse " + _this.name + " (" + _this.id + ") COMPLETED");
                 _this._completedSubject.onCompleted();
-                _this._extensionReleaseSubject.onCompleted();
+                _this._extensionCompletedSubject.onCompleted();
                 _this._disposables = null;
                 _this.dispose();
             }));
@@ -36,9 +36,9 @@ var Sequenx;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Lapse.prototype, "extensionReleased", {
+        Object.defineProperty(Lapse.prototype, "extensionCompleted", {
             get: function () {
-                return this._extensionReleaseSubject;
+                return this._extensionCompletedSubject;
             },
             enumerable: true,
             configurable: true
@@ -54,7 +54,7 @@ var Sequenx;
                 var reference = Rx.Disposable.create(function () {
                     if (Lapse.VERBOSE)
                         console.log("Lapse " + _this.name + " (" + _this.id + ") RELEASED ----- " + description);
-                    _this._extensionReleaseSubject.onNext(description);
+                    _this._extensionCompletedSubject.onNext(description);
                     disposable_1.dispose();
                 });
                 this._disposables.add(reference);

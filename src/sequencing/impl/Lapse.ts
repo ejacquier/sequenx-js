@@ -11,7 +11,7 @@ module Sequenx
 
         private _refCountDisposable: Rx.RefCountDisposable;
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-        private _extensionReleaseSubject: Rx.Subject<string> = new Rx.Subject<string>();
+        private _extensionCompletedSubject: Rx.Subject<string> = new Rx.Subject<string>();
         private _disposables: Rx.CompositeDisposable;
         private _started: boolean = false;
 
@@ -23,9 +23,9 @@ module Sequenx
             return this._completedSubject;
         }
 
-        get extensionReleased(): Rx.IObservable<any>
+        get extensionCompleted(): Rx.IObservable<any>
         {
-            return this._extensionReleaseSubject;
+            return this._extensionCompletedSubject;
         }
 
         constructor(name: string)
@@ -49,7 +49,7 @@ module Sequenx
                     console.log("Lapse " + this.name + " (" + this.id + ") COMPLETED");
 
                 this._completedSubject.onCompleted();
-                this._extensionReleaseSubject.onCompleted();
+                this._extensionCompletedSubject.onCompleted();
 
                 //clear disposables since they're only used when we want to interrupt the Lapse
                 this._disposables = null;
@@ -76,7 +76,7 @@ module Sequenx
                 {
                     if (Lapse.VERBOSE)
                         console.log("Lapse " + this.name + " (" + this.id + ") RELEASED ----- " + description);
-                    this._extensionReleaseSubject.onNext(description);
+                    this._extensionCompletedSubject.onNext(description);
 
                     disposable.dispose();
                 });

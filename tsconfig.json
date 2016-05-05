@@ -16,7 +16,7 @@
     "compilerOptions": {
         "target": "es5",
         "module": "commonjs",
-        "declaration": false,
+        "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
         "noLib": false,
@@ -28,6 +28,7 @@
         "!node_modules/**/*.ts"
     ],
     "files": [
+        "./js/sequenx.d.ts",
         "./src/sequencing/ICompletable.ts",
         "./src/sequencing/ILapse.ts",
         "./src/sequencing/impl/Lapse.ts",
