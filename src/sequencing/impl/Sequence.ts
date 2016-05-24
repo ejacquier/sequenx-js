@@ -1,32 +1,46 @@
 /// <reference path="../ICompletable.ts"/>
+/// <reference path="../IParallel.ts"/>
+/// <reference path="./Parallel.ts"/>
+/// <reference path="./Lapse.ts"/>
 /// <reference path="../../../typings/rx.d.ts"/>
 
 module Sequenx
 {
     export class Sequence implements ISequence, Rx.IDisposable
     {
+        private _log:ILog;
+        private _lapseDisposables:Rx.CompositeDisposable = new Rx.CompositeDisposable();
+        private _items: Array<Item> = new Array<Item>();
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-
-        public name: string;
-        public _lapse: Lapse;
-        private _items: Array<SequenceItem>;
-        private _completeObserver;
+        
+        private _isStarted:boolean;
+        private _isDisposed:boolean;
+        private _isCompleted:boolean;
 
         get completed(): Rx.IObservable<any>
         {
             return this._completedSubject;
         }
 
-        constructor(name: string, lapse: Lapse)
+        set completed(value: Rx.IObservable<any>)
         {
-            this.name = name;
-            this._lapse = lapse;
-            this._items = new Array<SequenceItem>();
 
-            console.log('Create sequence ' + name);
         }
 
-        public add(action: (lapse: ILapse) => void, lapseDescription: string, timer?: number): void
+        constructor(nameOrLog: string | ILog)
+        {
+            if (typeof nameOrLog === "string")
+                this._log = new Log(nameOrLog);
+            else
+                this._log = nameOrLog;
+        }
+        
+        public getChildLog(name:string):ILog
+        {
+            return this._log.getChild(name);
+        }
+
+        public add(action: (lapse: ILapse) => void, message: string): void
         {
             this._items.push(new SequenceItem(action, lapseDescription, timer));
         }
@@ -37,7 +51,7 @@ module Sequenx
             const parallel = new Parallel(name, lapse);
             action(parallel);
 
-            const sequenceItem = new SequenceItem(null, lapse.name, null);
+            const sequenceItem = new SequenceItem(null, "", null);
             sequenceItem.parallel = parallel;
             this._items.push(sequenceItem);
         }
@@ -118,6 +132,7 @@ module Sequenx
         {
             //console.log("onSequenceComplete " + this.name);
             this._completedSubject.onCompleted();
+            this._disposable.dispose();
         }
 
         public dispose(): void
@@ -131,23 +146,15 @@ module Sequenx
         execute(): void;
     }
 
-    class SequenceItem
+    class Item
     {
         public action: (lapse: ILapse) => void;
-        public lapseDescription: string;
-        public timer: number = null;
-        public parallel: IParallel = null;
+        public message: string;
 
-        constructor(action: (lapse: ILapse) => void, lapseDescription: string, timer?: number)
+        constructor(action: (lapse: ILapse) => void, message: string)
         {
             this.action = action;
-            this.lapseDescription = lapseDescription;
-            this.timer = timer;
-        }
-
-        public toString(): string
-        {
-            return this.lapseDescription;
+            this.message = message;
         }
     }
 

@@ -1,117 +1,100 @@
 /// <reference path="../ICompletable.ts"/>
+/// <reference path="../ILapse.ts"/>
 /// <reference path="../../../typings/rx.d.ts"/>
+/// <reference path="../../logging/ILog.ts"/>
+/// <reference path="../../logging/Log.ts"/>
 
 module Sequenx
 {
     export class Lapse implements ILapse, Rx.IDisposable
     {
-        public static EMPTY: ILapse = new Lapse("empty");
-        public static VERBOSE: boolean = false;
-        private static nextId: number = 1;
-
+        private _isStarted: boolean;
+        private _isDisposed: boolean;
+        private _isCompleted: boolean;
         private _refCountDisposable: Rx.RefCountDisposable;
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-        private _extensionCompletedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-        private _disposables: Rx.CompositeDisposable;
-        private _started: boolean = false;
-
-        public name: string;
-        public id: number;
+        private _log: ILog;
 
         get completed(): Rx.IObservable<any>
         {
             return this._completedSubject;
         }
 
-        get extensionCompleted(): Rx.IObservable<any>
+        set completed(value: Rx.IObservable<any>)
         {
-            return this._extensionCompletedSubject;
+
         }
 
         constructor(name: string)
         {
-            this.name = name;
-
-            if (name == "empty")
-            {
-
-                return;
-            }
-
-            this.id = Lapse.nextId++;
-
-            if (Lapse.VERBOSE)
-                console.log("Lapse " + this.name + " (" + this.id + ") STARTED");
-
-            this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() =>
-            {
-                if (Lapse.VERBOSE)
-                    console.log("Lapse " + this.name + " (" + this.id + ") COMPLETED");
-
-                this._completedSubject.onCompleted();
-                this._extensionCompletedSubject.onCompleted();
-
-                //clear disposables since they're only used when we want to interrupt the Lapse
-                this._disposables = null;
-
-                this.dispose();
-            }));
-
-            if (this._disposables == null)
-                this._disposables = new Rx.CompositeDisposable();
+            this._log = new Log(name);
+            this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() => this.lapseCompleted()));
         }
+        
+        public getChildLog(name:string):ILog
+	    {
+	        return this._log.getChild(name);
+	    }
 
-        public extend(description: string, timer?: number): Rx.IDisposable
+        public sustain(name?:string): Rx.IDisposable
         {
-            if (Lapse.VERBOSE)
-                console.log("Lapse " + this.name + " (" + this.id + ") EXTENDED +++++ " + description);
-
-            if (this._refCountDisposable != null)
-            {
-                if (this._refCountDisposable.isDisposed)
-                    console.error("Extending disposed lapse: " + this.name + " (" + this.id + ")");
-
-                const disposable = this._refCountDisposable.getDisposable();
-                const reference = Rx.Disposable.create(() =>
-                {
-                    if (Lapse.VERBOSE)
-                        console.log("Lapse " + this.name + " (" + this.id + ") RELEASED ----- " + description);
-                    this._extensionCompletedSubject.onNext(description);
-
-                    disposable.dispose();
-                });
-
-                this._disposables.add(reference);
-
-                return reference;
-            }
-            return Rx.Disposable.empty;
+            if (this._isCompleted || this._isDisposed)
+                return Rx.Disposable.empty;
+            
+            if (name && Log.isEnabled)
+                this._log.warning("Sustain " + name);
+            
+            return this._refCountDisposable.getDisposable();
         }
 
         public start(): void
         {
-            this._started = true;
+            if (this._isStarted || this._isCompleted || this._isDisposed)
+                return;
+
+            this._isStarted = true;
             this._refCountDisposable.dispose();
         }
 
         public dispose(): void
         {
-            if (!this._started)
-            {
-                console.error("Trying to dipose a Lapse not yet started!");
+            if (this._isDisposed)
                 return;
-            }
 
-            if (this._disposables != null)
+            if (!this._isCompleted)
             {
-                console.warn("Lapse " + this.name + " (" + this.id + ") INTERRUPTED ----- ");
-                this._disposables.dispose();
+                this._log.info("Cancelling");
             }
 
-            this._disposables = null;
-            this._refCountDisposable = null;
-            this._completedSubject.dispose();
-            this._extensionCompletedSubject.dispose();
+            this.lapseCompleted();
+        }
+
+        private lapseCompleted(): void
+        {
+            if (this._isCompleted)
+                return;
+
+            this._isCompleted = true;
+            this._isDisposed = true;
+            this._log.dispose();
+            this._completedSubject.onCompleted();
+        }
+        
+        //ILapseExtensions
+        
+        public sequence(action:(seq:ISequence) => void, message?:string):Rx.IDisposable
+        {
+            const sustain = this.sustain();
+            const name = message ? message : 'Child';
+            const log = this.getChildLog(name);
+            const sequence = new Sequence(log);
+            
+            return null; 
+        }
+        
+        public child(action:(lapse:ILapse) => void, message?:string):void
+        {
+            
         }
     }
 }

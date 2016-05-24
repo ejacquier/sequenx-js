@@ -5,7 +5,6 @@ module Sequenx
 {
     export interface ILapse extends ICompletable
     {
-        extend(description: string, timer?: number): Rx.IDisposable;
-        extensionCompleted: Rx.IObservable<any>;
+        sustain(): Rx.IDisposable;
     }
 }
