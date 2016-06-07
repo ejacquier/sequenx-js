@@ -6,5 +6,6 @@ module Sequenx
     export interface ILapse extends ICompletable
     {
         sustain(): Rx.IDisposable;
+        getChildLog(name: string): ILog;
     }
 }

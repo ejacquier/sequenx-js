@@ -41,13 +41,15 @@ declare module Sequenx {
 declare module Sequenx {
     interface ILapse extends ICompletable {
         sustain(): Rx.IDisposable;
+        getChildLog(name: string): ILog;
     }
 }
 declare module Sequenx {
     interface ISequence extends ICompletable {
-        add(action: (lapse: ILapse) => void, lapseDescription: string, timer?: number): void;
-        addParallel(action: (parallel: IParallel) => void, name: string): void;
-        start(): void;
+        add(item: Item): void;
+        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        getChildLog(name: string): ILog;
     }
 }
 declare module Sequenx {
@@ -63,32 +65,60 @@ declare module Sequenx {
         private _completedSubject;
         private _log;
         completed: Rx.IObservable<any>;
-        constructor(name: string);
-        sustain(): Rx.IDisposable;
+        constructor(nameOrLog: string | ILog);
+        getChildLog(name: string): ILog;
+        sustain(name?: string): Rx.IDisposable;
         start(): void;
         dispose(): void;
-        private onCompleted();
+        private lapseCompleted();
+        onCompleted(action: () => void): Rx.IDisposable;
+        sequence(action: (seq: ISequence) => void, message?: string): Rx.IDisposable;
+        child(action: (lapse: ILapse) => void, message?: string): void;
+        disposeOnComplete(disposable: Rx.IDisposable): void;
     }
 }
 declare module Sequenx {
     class Sequence implements ISequence, Rx.IDisposable {
-        private _completedSubject;
-        name: string;
-        _lapse: Lapse;
+        private _log;
+        private _lapseDisposables;
+        private _currentLapseDisposable;
+        private _pendingExecution;
         private _items;
-        private _completeObserver;
-        private _disposable;
+        private _completedSubject;
+        private _isStarted;
+        private _isDisposed;
+        private _isCompleted;
+        private _isExecuting;
         completed: Rx.IObservable<any>;
-        constructor(name: string, lapse: Lapse);
-        add(action: (lapse: ILapse) => void, lapseDescription: string, timer?: number): void;
-        addParallel(action: (parallel: IParallel) => void, name: string): void;
+        constructor(nameOrLog: string | ILog);
+        getChildLog(name: string): ILog;
+        add(item: Item): void;
+        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
         start(): void;
-        private doItem(item);
-        private onSequenceComplete();
+        protected scheduleNext(): void;
+        private executeNext(scheduler, state);
+        protected onLastItemCompleted(): void;
         dispose(): void;
+        private onSequenceComplete();
+        onCompleted(action: () => void): Rx.IDisposable;
+        do(action: (lapse: ILapse) => void, message?: string): void;
+    }
+    class Item {
+        action: (lapse: ILapse) => void;
+        message: string;
+        data: any;
+        constructor(action: (lapse: ILapse) => void, message?: string, data?: any);
     }
 }
 declare module Sequenx {
-    class Parallel extends Sequence implements IParallel {
+    class Parallel implements IParallel {
+        private _lapse;
+        constructor(lapse: ILapse);
+        completed: Rx.IObservable<any>;
+        getChildLog(name: string): ILog;
+        add(item: Item): void;
+        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
     }
 }

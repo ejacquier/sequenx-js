@@ -4,17 +4,16 @@
 	<title>Sequenx-js -- Simple Lapse Example</title>
 	<meta charset="UTF-8">
 
-  <script src="../../js/rx.lite.min.js"></script>
+  <script src="../../js/rx.lite.js"></script>
 	<script src="../../js/sequenx.js"></script>
 
 <script>
 
-var lapse;
+var sequence;
 
 function start() {
 
-	lapse = new Sequenx.Lapse('simple-lapse-sequence');
-  var sequence = new Sequenx.Sequence('simple-sequence', lapse);
+  sequence = new Sequenx.Sequence('simple-sequence');
 
   var subscription = sequence.completed.subscribe(
     function (x) { console.warn('Sequence item finished: %s', x); },
@@ -26,29 +25,27 @@ function start() {
     }
   );
 
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv1');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv2');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv3');
+	sequence.do(waitForOneSecond, 'waitForOneSecond');
+	sequence.do(createRandomDiv, 'createRandomDiv1');
+	sequence.do(waitForOneSecond, 'waitForOneSecond');
+	sequence.do(createRandomDiv, 'createRandomDiv2');
+	sequence.do(waitForOneSecond, 'waitForOneSecond');
+	sequence.do(createRandomDiv, 'createRandomDiv3');
 
 	sequence.start();
-
-	lapse.start();
 }
 
 function waitForOneSecond(lapse)
 {
-	console.log('waitForOneSecond!', lapse.name);
-	var disposable1 = lapse.extend('timer-1000');
+	console.log('waitForOneSecond!');
+	var disposable1 = lapse.sustain('timer-1000');
   setTimeout(function(){ disposable1.dispose() }, 1000);
 }
 
 function createRandomDiv(lapse)
 {
-	console.log('createRandomDiv!', lapse.name);
-	var disposable = lapse.extend('create-random-div');
+	console.log('createRandomDiv!');
+	var disposable = lapse.sustain('create-random-div');
 
 	var div = document.createElement('div');
 	div.style.position = "absolute";
@@ -74,7 +71,7 @@ function getRandomPosition(element) {
 
 function complete()
 {
-  console.log('Lapse is completed, now do stuffs');
+  console.log('Sequence is completed, now do stuffs');
   document.body.style.backgroundColor = '#00FF00';
 }
 

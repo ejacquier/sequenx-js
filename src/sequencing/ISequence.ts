@@ -5,7 +5,9 @@ module Sequenx
 {
     export interface ISequence extends ICompletable
     {
-        add(action: (lapse: ILapse) => void, message?: string): void;
-        getChildLog(name:string):ILog;
+        add(item: Item): void;
+        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        getChildLog(name: string): ILog;
     }
 }

@@ -24,10 +24,13 @@ module Sequenx
         {
 
         }
-
-        constructor(name: string)
+        
+        constructor(nameOrLog: string | ILog)
         {
-            this._log = new Log(name);
+            if (typeof nameOrLog === "string")
+                this._log = new Log(name);
+            else
+                this._log = nameOrLog as ILog;
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() => this.lapseCompleted()));
         }
         
@@ -80,21 +83,42 @@ module Sequenx
             this._completedSubject.onCompleted();
         }
         
+        //ICompletableExtensions
+        
+        public onCompleted(action:()=>void):Rx.IDisposable
+        {
+            return this._completedSubject.subscribeOnCompleted(action);
+        }
+        
         //ILapseExtensions
         
         public sequence(action:(seq:ISequence) => void, message?:string):Rx.IDisposable
         {
             const sustain = this.sustain();
-            const name = message ? message : 'Child';
+            const name = message ? message : 'Sequence';
             const log = this.getChildLog(name);
-            const sequence = new Sequence(log);
+            const seq = new Sequence(log);
+            seq.onCompleted(sustain.dispose);
+            action(seq);
+            seq.start();
             
-            return null; 
+            return seq; 
         }
         
         public child(action:(lapse:ILapse) => void, message?:string):void
         {
-            
+            const sustain = this.sustain();
+            const name = message ? message : 'Child';
+            const log = this.getChildLog(name);
+            const child = new Lapse(log);
+            child.onCompleted(sustain.dispose);
+            action(child);
+            child.start();
+        }
+        
+        public disposeOnComplete(disposable:Rx.IDisposable):void
+        {
+            this.onCompleted(disposable.dispose);
         }
     }
 }

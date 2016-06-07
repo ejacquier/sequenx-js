@@ -8,14 +8,17 @@ module Sequenx
 {
     export class Sequence implements ISequence, Rx.IDisposable
     {
-        private _log:ILog;
-        private _lapseDisposables:Rx.CompositeDisposable = new Rx.CompositeDisposable();
+        private _log: ILog;
+        private _lapseDisposables: Rx.CompositeDisposable = new Rx.CompositeDisposable();
+        private _currentLapseDisposable: Rx.IDisposable = Rx.Disposable.empty;
+        private _pendingExecution: Rx.IDisposable = Rx.Disposable.empty;
         private _items: Array<Item> = new Array<Item>();
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-        
-        private _isStarted:boolean;
-        private _isDisposed:boolean;
-        private _isCompleted:boolean;
+
+        private _isStarted: boolean;
+        private _isDisposed: boolean;
+        private _isCompleted: boolean;
+        private _isExecuting: boolean;
 
         get completed(): Rx.IObservable<any>
         {
@@ -34,109 +37,158 @@ module Sequenx
             else
                 this._log = nameOrLog;
         }
-        
-        public getChildLog(name:string):ILog
+
+        public getChildLog(name: string): ILog
         {
             return this._log.getChild(name);
         }
 
-        public add(action: (lapse: ILapse) => void, message: string): void
+        public add(item: Item): void
         {
-            this._items.push(new SequenceItem(action, lapseDescription, timer));
+            if (this._isDisposed)
+                throw new Error("Trying to add action to a disposed sequence.");
+
+            this._items.push(item);
         }
 
-        public addParallel(action: (parallel: IParallel) => void, name: string): void
+        public skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void
         {
-            const lapse = new Lapse("parallel:" + name);
-            const parallel = new Parallel(name, lapse);
-            action(parallel);
+            // Skip items until reaching a non-matching one
+            while (this._items.length > 0 && predicate(this._items[0]))
+                this._items.splice(0, 1);
 
-            const sequenceItem = new SequenceItem(null, "", null);
-            sequenceItem.parallel = parallel;
-            this._items.push(sequenceItem);
+            if (cancelCurrent)
+                this._currentLapseDisposable.dispose();
+        }
+
+        public skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void
+        {
+            let index = -1;
+            for (let i = 0; i < this._items.length; i++) 
+            {
+                if (predicate(this._items[i]))
+                {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (index != -1)
+            {
+                this._items = this._items.slice(index);
+
+                if (cancelCurrent)
+                    this._currentLapseDisposable.dispose();
+            }
         }
 
         public start()
         {
-            console.log("Starting sequence " + this.name);
+            if (this._isStarted || this._isDisposed)
+                return;
 
-            if (this._items.length > 0)
-                this.doItem(this._items.shift());
-            else
-                this.onSequenceComplete();
+            this._isStarted = true;
+            this.scheduleNext();
         }
 
-        private doItem(item: SequenceItem)
+        protected scheduleNext(): void
         {
-            console.log("Sequence doItem " + item.toString());
+            this._pendingExecution.dispose();
+            this._pendingExecution = Rx.Scheduler.currentThread.schedule("item", this.executeNext.bind(this));
+        }
 
-            //TODO Refractor this (working) mess :(
+        private executeNext(scheduler: Rx.IScheduler, state: string): Rx.IDisposable
+        {
+            if (this._isExecuting || this._isCompleted || this._isDisposed)
+                return;
 
-            let lapse;
-            if (this instanceof Parallel) //if we are in a Parallel sequence, reuse the same lapse
+            // Nothing left to execute?
+            if (this._items.length === 0)
             {
-                lapse = this._lapse;
-                lapse.completed.subscribe((nextItem) =>
-                {
-                    this._completedSubject.onNext(nextItem);
-                }, null, () =>
-                    {
-                        //console.log('Parallel sequence finished ' + item.lapseDescription);
-
-                        this.onSequenceComplete();
-                    });
-                item.action(lapse);
-                for (let i = 0; i < this._items.length; i++)
-                {
-                    this._items[i].action(lapse);
-                }
-
-                lapse.start();
+                this.onLastItemCompleted();
+                return;
             }
-            else if (item.parallel != null) //start the parallel sequenceItem
-            {
-                item.parallel.completed.subscribe(() => { }, null, () =>
-                {
-                    //console.log('Parallel finished ' + item.lapseDescription);
 
-                    this._completedSubject.onNext(item.lapseDescription);
-                    if (this._items.length > 0)
-                        this.doItem(this._items.shift());
-                    else
-                        this.onSequenceComplete();
-                });
-                item.parallel.start();
-                (<Sequence>item.parallel)._lapse.start();
+            // Pop first item out of queue
+            const item = this._items.shift();
+
+            // Non-actionable item?
+            if (!item.action)
+            {
+                // Any message attached?
+                if (item.message)
+                    this._log.info("Message: " + item.message);
+
+                return;
             }
-            else //process the sequenceItem
+
+            // Create lapse
+            const lapse = new Lapse(this._log.getChild(item.message));
+            this._currentLapseDisposable = lapse;
+            this._lapseDisposables.add(lapse);
+
+            lapse.onCompleted(() =>
             {
+                this._isExecuting = false;
+                this.scheduleNext();
+            });
 
-                lapse = new Lapse(item.lapseDescription);
-
-                lapse.completed.subscribe(() => { }, null, () =>
-                {
-                    //console.log('Sequence item finished ' + item.lapseDescription);
-
-                    this._completedSubject.onNext(item.lapseDescription);
-                    if (this._items.length > 0)
-                        this.doItem(this._items.shift());
-                    else
-                        this.onSequenceComplete();
-                });
+            // Execute item
+            try
+            {
+                this._isExecuting = true;
                 item.action(lapse);
                 lapse.start();
             }
+            catch (error)
+            {
+                this._isExecuting = false;
+                this._log.error(error);
+                this.scheduleNext();
+            }
         }
 
-        private onSequenceComplete()
+        protected onLastItemCompleted()
         {
-            //console.log("onSequenceComplete " + this.name);
-            this._completedSubject.onCompleted();
-            this._disposable.dispose();
+            this.onSequenceComplete();
         }
 
         public dispose(): void
         {
+            if (this._isDisposed)
+                return;
+
+            if (!this._isCompleted)
+                this._log.info("Cancelling");
+
+            this.onSequenceComplete();
+        }
+
+        private onSequenceComplete()
+        {
+            if (this._isCompleted)
+                return;
+
+            this._isCompleted = true;
+            this._isDisposed = true;
+            this._lapseDisposables.dispose();
+            this._completedSubject.onCompleted();
+            this._log.dispose();
+        }
+
+        // ICompletableExtensions
+
+        public onCompleted(action: () => void): Rx.IDisposable
+        {
+            return this._completedSubject.subscribeOnCompleted(action);
+        }
+
+        // ISequenceExtensions
+
+        public do(action: (lapse: ILapse) => void, message?: string)
+        {
+            if (action != null)
+                this.add(new Item(action, message))
         }
 
     }
@@ -146,16 +198,17 @@ module Sequenx
         execute(): void;
     }
 
-    class Item
+    export class Item
     {
         public action: (lapse: ILapse) => void;
         public message: string;
+        public data: any;
 
-        constructor(action: (lapse: ILapse) => void, message: string)
+        constructor(action: (lapse: ILapse) => void, message?: string, data?: any)
         {
             this.action = action;
             this.message = message;
+            this.data = data;
         }
     }
-
 }
