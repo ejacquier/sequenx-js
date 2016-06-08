@@ -34,12 +34,15 @@ module Sequenx
 
         set name(value: string) { }
 
-        constructor(nameOrLog: string | ILog)
+        constructor(nameOrLog?: string | ILog)
         {
-            if (typeof nameOrLog === "string")
-                this._log = new Log(nameOrLog);
-            else
-                this._log = nameOrLog;
+            if (nameOrLog)
+            {
+                if (typeof nameOrLog === "string")
+                    this._log = new Log(nameOrLog);
+                else
+                    this._log = nameOrLog;
+            }
         }
 
         public getChildLog(name: string): ILog
@@ -144,18 +147,18 @@ module Sequenx
             });
 
             // Execute item
-            //try
-            //{
+            try
+            {
                 this._isExecuting = true;
                 item.action(lapse);
                 lapse.start();
-            /*}
+            }
             catch (error)
             {
                 this._isExecuting = false;
                 this._log.error(error + "\n" + error.stack);
                 this.scheduleNext();
-            }*/
+            }
         }
 
         protected onLastItemCompleted()
@@ -239,14 +242,14 @@ module Sequenx
         public doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): void
         {
             const disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnCompleted(disposable.dispose);
+            observable.subscribeOnCompleted(() => disposable.dispose());
             this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForCompleted");
         }
 
         public doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void
         {
             const disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnNext(disposable.dispose);
+            observable.subscribeOnNext(() => disposable.dispose());
             this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForNext");
         }
 
@@ -277,7 +280,7 @@ module Sequenx
 
                 const log = this.getChildLog(message);
                 const seq = new Sequence(log);
-                seq.onCompleted(sustain.dispose);
+                seq.onCompleted(() => sustain.dispose());
                 lapse.onCompleted(seq.dispose);
 
                 // Let action enqueue actions into sequence

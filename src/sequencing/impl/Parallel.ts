@@ -9,7 +9,7 @@ module Sequenx
 
         constructor(lapse: ILapse)
         {
-            super(lapse.name);
+            super();
             this._lapse = lapse;
         }
 

@@ -133,7 +133,7 @@ var Sequenx;
             if (this._isCompleted || this._isDisposed)
                 return Rx.Disposable.empty;
             if (name && Sequenx.Log.isEnabled)
-                this._log.warning("Sustain " + name);
+                this._log.info("Sustain " + name);
             return this._refCountDisposable.getDisposable();
         };
         Lapse.prototype.start = function () {
@@ -166,7 +166,7 @@ var Sequenx;
             var name = message ? message : 'Sequence';
             var log = this.getChildLog(name);
             var seq = new Sequenx.Sequence(log);
-            seq.onCompleted(sustain.dispose);
+            seq.onCompleted(function () { return sustain.dispose(); });
             action(seq);
             seq.start();
             return seq;
@@ -176,12 +176,12 @@ var Sequenx;
             var name = message ? message : 'Child';
             var log = this.getChildLog(name);
             var child = new Lapse(log);
-            child.onCompleted(sustain.dispose);
+            child.onCompleted(function () { return sustain.dispose(); });
             action(child);
             child.start();
         };
         Lapse.prototype.disposeOnComplete = function (disposable) {
-            this.onCompleted(disposable.dispose);
+            this.onCompleted(function () { return disposable.dispose(); });
         };
         return Lapse;
     }());
@@ -196,10 +196,12 @@ var Sequenx;
             this._pendingExecution = Rx.Disposable.empty;
             this._items = new Array();
             this._completedSubject = new Rx.Subject();
-            if (typeof nameOrLog === "string")
-                this._log = new Sequenx.Log(nameOrLog);
-            else
-                this._log = nameOrLog;
+            if (nameOrLog) {
+                if (typeof nameOrLog === "string")
+                    this._log = new Sequenx.Log(nameOrLog);
+                else
+                    this._log = nameOrLog;
+            }
         }
         Object.defineProperty(Sequence.prototype, "completed", {
             get: function () {
@@ -280,9 +282,16 @@ var Sequenx;
                 _this._isExecuting = false;
                 _this.scheduleNext();
             });
-            this._isExecuting = true;
-            item.action(lapse);
-            lapse.start();
+            try {
+                this._isExecuting = true;
+                item.action(lapse);
+                lapse.start();
+            }
+            catch (error) {
+                this._isExecuting = false;
+                this._log.error(error + "\n" + error.stack);
+                this.scheduleNext();
+            }
         };
         Sequence.prototype.onLastItemCompleted = function () {
             this.onSequenceComplete();
@@ -336,12 +345,12 @@ var Sequenx;
         };
         Sequence.prototype.doWaitForCompleted = function (observable, message) {
             var disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnCompleted(disposable.dispose);
+            observable.subscribeOnCompleted(function () { return disposable.dispose(); });
             this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForCompleted");
         };
         Sequence.prototype.doWaitForNext = function (observable, message) {
             var disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnNext(disposable.dispose);
+            observable.subscribeOnNext(function () { return disposable.dispose(); });
             this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForNext");
         };
         Sequence.prototype.doWaitFor = function (completable, message) {
@@ -362,7 +371,7 @@ var Sequenx;
                 var sustain = lapse.sustain();
                 var log = _this.getChildLog(message);
                 var seq = new Sequence(log);
-                seq.onCompleted(sustain.dispose);
+                seq.onCompleted(function () { return sustain.dispose(); });
                 lapse.onCompleted(seq.dispose);
                 action(seq);
                 seq.start();
@@ -389,7 +398,7 @@ var Sequenx;
     var Parallel = (function (_super) {
         __extends(Parallel, _super);
         function Parallel(lapse) {
-            _super.call(this, lapse.name);
+            _super.call(this);
             this._lapse = lapse;
         }
         Object.defineProperty(Parallel.prototype, "completed", {

@@ -111,7 +111,7 @@ declare module Sequenx {
         private _isExecuting;
         completed: Rx.Observable<any>;
         name: string;
-        constructor(nameOrLog: string | ILog);
+        constructor(nameOrLog?: string | ILog);
         getChildLog(name: string): ILog;
         add(item: Item): void;
         skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;

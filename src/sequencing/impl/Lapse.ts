@@ -52,7 +52,7 @@ module Sequenx
                 return Rx.Disposable.empty;
 
             if (name && Log.isEnabled)
-                this._log.warning("Sustain " + name);
+                this._log.info("Sustain " + name);
 
             return this._refCountDisposable.getDisposable();
         }
@@ -106,7 +106,7 @@ module Sequenx
             const name = message ? message : 'Sequence';
             const log = this.getChildLog(name);
             const seq = new Sequence(log);
-            seq.onCompleted(sustain.dispose);
+            seq.onCompleted(() => sustain.dispose());
             action(seq);
             seq.start();
 
@@ -119,14 +119,14 @@ module Sequenx
             const name = message ? message : 'Child';
             const log = this.getChildLog(name);
             const child = new Lapse(log);
-            child.onCompleted(sustain.dispose);
+            child.onCompleted(() => sustain.dispose());
             action(child);
             child.start();
         }
 
         public disposeOnComplete(disposable: Rx.IDisposable): void
         {
-            this.onCompleted(disposable.dispose);
+            this.onCompleted(() => disposable.dispose());
         }
     }
 }
