@@ -4,6 +4,6 @@ module Sequenx
 {
     export interface ICompletable
     {
-        completed: Rx.IObservable<any>;
+        completed: Rx.Observable<any>;
     }
 }

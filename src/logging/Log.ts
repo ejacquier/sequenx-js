@@ -17,6 +17,13 @@ module Sequenx
         private _id: number;
         private _fullName: string;
         private _isDisposed: boolean;
+        
+        get name(): string
+        {
+            return this._name;
+        }
+
+        set name(value: string){}
 
         constructor(name: string, parent?: Log)
         {
@@ -83,9 +90,9 @@ module Sequenx
             return "(" + this._id + ") " + this._name;
         }
 
-        private format(message: string, ...params: any[]): string
+        private format(message: string, params: any[]): string
         {
-            if (params != null && params.length > 0)
+            if (message && params != null && params.length > 0)
                 message = this.strFormat(message, params);
 
             return this.fullName + Log.MessageSeparator + message;

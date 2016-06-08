@@ -9,5 +9,6 @@ module Sequenx
         info(message:string, ...params:any[]):void
         warning(message:string, ...params:any[]):void
         error(message:string, ...params:any[]):void
+        name: string;
     }
 }

@@ -8,7 +8,7 @@ module Sequenx
 {
     export class Sequence implements ISequence, Rx.IDisposable
     {
-        private _log: ILog;
+        protected _log: ILog;
         private _lapseDisposables: Rx.CompositeDisposable = new Rx.CompositeDisposable();
         private _currentLapseDisposable: Rx.IDisposable = Rx.Disposable.empty;
         private _pendingExecution: Rx.IDisposable = Rx.Disposable.empty;
@@ -20,15 +20,19 @@ module Sequenx
         private _isCompleted: boolean;
         private _isExecuting: boolean;
 
-        get completed(): Rx.IObservable<any>
+        get completed(): Rx.Observable<any>
         {
             return this._completedSubject;
         }
 
-        set completed(value: Rx.IObservable<any>)
-        {
+        set completed(value: Rx.Observable<any>) { }
 
+        get name(): string
+        {
+            return this._log.name;
         }
+
+        set name(value: string) { }
 
         constructor(nameOrLog: string | ILog)
         {
@@ -45,6 +49,12 @@ module Sequenx
 
         public add(item: Item): void
         {
+            if (!(item instanceof Sequenx.Item))
+            {
+                this._log.error("Trying to add something other than Sequenx.Item, use do if you use a function(lapse)");
+                return;
+            }
+            
             if (this._isDisposed)
                 throw new Error("Trying to add action to a disposed sequence.");
 
@@ -134,18 +144,18 @@ module Sequenx
             });
 
             // Execute item
-            try
-            {
+            //try
+            //{
                 this._isExecuting = true;
                 item.action(lapse);
                 lapse.start();
-            }
+            /*}
             catch (error)
             {
                 this._isExecuting = false;
-                this._log.error(error);
+                this._log.error(error + "\n" + error.stack);
                 this.scheduleNext();
-            }
+            }*/
         }
 
         protected onLastItemCompleted()
@@ -172,43 +182,130 @@ module Sequenx
             this._isCompleted = true;
             this._isDisposed = true;
             this._lapseDisposables.dispose();
-            this._completedSubject.onCompleted();
             this._log.dispose();
+            this._completedSubject.onCompleted();
         }
 
         // ICompletableExtensions
 
         public onCompleted(action: () => void): Rx.IDisposable
         {
-            return this._completedSubject.subscribeOnCompleted(action);
+            return this.completed.subscribeOnCompleted(action);
         }
 
         // ISequenceExtensions
 
-        public do(action: (lapse: ILapse) => void, message?: string)
+        public do(action: (lapse?: ILapse) => void, message?: string): void
         {
             if (action != null)
-                this.add(new Item(action, message))
+                this.add(new Item(action, message));
+        }
+
+        public doMark(marker?: any): any
+        {
+            const mark = marker ? marker : {};
+            this.add(new Item(null, null, mark));
+            return mark;
+        }
+
+        public skipToMarker(marker: any, cancelCurrent?: boolean): void
+        {
+            cancelCurrent = cancelCurrent == undefined ? false : cancelCurrent;
+            this.skipTo(x => x.data === marker, cancelCurrent);
+        }
+
+        public skipToEnd(cancelCurrent?: boolean): void
+        {
+            cancelCurrent = cancelCurrent == undefined ? false : cancelCurrent;
+            this.skip(x => true, cancelCurrent);
+        }
+
+        public doWait(duration: number, message?: string): void
+        {
+            this.do(lapse =>
+            {
+                const sustain = lapse.sustain();
+                setTimeout(() => { sustain.dispose() });
+            }, message ? message : "Wait " + (duration / 1000) + "s");
+        }
+
+        public doWaitForDispose(message?: string): Rx.IDisposable
+        {
+            const disposable = new Rx.SingleAssignmentDisposable();
+            this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForDispose");
+            return disposable;
+        }
+
+        public doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): void
+        {
+            const disposable = new Rx.SingleAssignmentDisposable();
+            observable.subscribeOnCompleted(disposable.dispose);
+            this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForCompleted");
+        }
+
+        public doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void
+        {
+            const disposable = new Rx.SingleAssignmentDisposable();
+            observable.subscribeOnNext(disposable.dispose);
+            this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForNext");
+        }
+
+        public doWaitFor(completable: ICompletable, message?: string): void
+        {
+            this.doWaitForCompleted(completable.completed, message);
+        }
+
+        public doParallel(action: (parallel: IParallel) => void, message?: string): void
+        {
+            this.do(lapse => 
+            {
+                const parallel = new Parallel(lapse);
+                action(parallel);
+            }, message ? message : "Parallel");
+        }
+
+        public doDispose(disposable: Rx.IDisposable, message?: string): void
+        {
+            this.do(lapse => disposable.dispose(), message ? message : "Dispose");
+        }
+
+        public doSequence(action: (sequence: ISequence) => void, message?: string): void
+        {
+            this.do(lapse => 
+            {
+                const sustain = lapse.sustain();
+
+                const log = this.getChildLog(message);
+                const seq = new Sequence(log);
+                seq.onCompleted(sustain.dispose);
+                lapse.onCompleted(seq.dispose);
+
+                // Let action enqueue actions into sequence
+                action(seq);
+
+                seq.start();
+
+            }, message ? message : "Sequence");
         }
 
     }
 
-    interface ISequenceItem
-    {
-        execute(): void;
-    }
-
     export class Item
     {
-        public action: (lapse: ILapse) => void;
+        public action: (lapse?: ILapse) => void;
         public message: string;
         public data: any;
 
-        constructor(action: (lapse: ILapse) => void, message?: string, data?: any)
+        constructor(action?: (lapse?: ILapse) => void, message?: string, data?: any)
         {
-            this.action = action;
+            this.action = action ? action : () => {};
             this.message = message;
             this.data = data;
+        }
+        
+        public toString():string
+        {
+            return "[Item] msg %s action %s data %s", this.message, this.action != null, this.data;    
         }
     }
 }

@@ -4,15 +4,14 @@
 	<title>Sequenx-js -- Simple Lapse Example</title>
 	<meta charset="UTF-8">
 
-  <script src="../../js/rx.lite.min.js"></script>
+  <script src="../../js/rx.lite.js"></script>
 	<script src="../../js/sequenx.js"></script>
 
 <script>
 
 function start() {
 
-	var lapse = new Sequenx.Lapse('simple-lapse-sequence');
-  var sequence = new Sequenx.Sequence('simple-sequence', lapse);
+  var sequence = new Sequenx.Sequence('simple-sequence');
 
   var subscription = sequence.completed.subscribe(
     function (x) { console.warn('Sequence item finished: %s', x); },
@@ -24,46 +23,45 @@ function start() {
     }
   );
 
-	sequence.add(waitForOneSecond, 'waitForOneSecond1');
-	sequence.add(waitForOneSecond, 'waitForOneSecond2');
+	sequence.do(waitForOneSecond, 'waitForOneSecond1');
+	sequence.do(waitForOneSecond, 'waitForOneSecond2');
 
-	sequence.addParallel(function (p){
-		p.add(createRandomDiv, 'parallel-createRandomDiv1');
-		p.add(createRandomDiv, 'parallel-createRandomDiv2');
-		p.add(createRandomDiv, 'parallel-createRandomDiv3');
-		p.add(createRandomDiv, 'parallel-createRandomDiv4');
-		p.add(createRandomDiv, 'parallel-createRandomDiv5');
-		p.add(waitForOneSecond, 'waitForOneSecond-prallel');
+	sequence.doParallel(function (p){
+		p.do(createRandomDiv, 'parallel-createRandomDiv1');
+		p.do(createRandomDiv, 'parallel-createRandomDiv2');
+		p.do(createRandomDiv, 'parallel-createRandomDiv3');
+		p.do(createRandomDiv, 'parallel-createRandomDiv4');
+		p.do(createRandomDiv, 'parallel-createRandomDiv5');
+		p.doWait(1500);
 	}, "simple-parallel");
 
-	sequence.add(waitForOneSecond, 'waitForOneSecond3');
-	sequence.add(createRandomDiv, 'createRandomDiv3');
-	sequence.add(waitForOneSecond, 'waitForOneSecond4');
-	sequence.add(createRandomDiv, 'createRandomDiv4');
-	sequence.add(waitForOneSecond, 'waitForOneSecond5');
-	sequence.add(createRandomDiv, 'createRandomDiv5');
-	sequence.add(waitForOneSecond, 'waitForOneSecond6');
-	sequence.add(createRandomDiv, 'createRandomDiv6');
-	sequence.add(waitForOneSecond, 'waitForOneSecond7');
-	sequence.add(createRandomDiv, 'createRandomDiv7');
-	sequence.add(createRandomDiv, 'createRandomDiv8');
+	sequence.do(waitForOneSecond, 'waitForOneSecond3');
+	sequence.do(createRandomDiv, 'createRandomDiv3');
+	sequence.do(waitForOneSecond, 'waitForOneSecond4');
+	sequence.do(createRandomDiv, 'createRandomDiv4');
+	sequence.do(waitForOneSecond, 'waitForOneSecond5');
+	sequence.do(createRandomDiv, 'createRandomDiv5');
+	sequence.do(waitForOneSecond, 'waitForOneSecond6');
+	sequence.do(createRandomDiv, 'createRandomDiv6');
+	sequence.do(waitForOneSecond, 'waitForOneSecond7');
+	sequence.do(createRandomDiv, 'createRandomDiv7');
+	sequence.do(createRandomDiv, 'createRandomDiv8');
 
 	sequence.start();
 
-	lapse.dispose();
 }
 
 function waitForOneSecond(lapse)
 {
 	//console.log('waitForOneSecond!', lapse.name);
-	var disposable1 = lapse.extend('timer-1000');
+	var disposable1 = lapse.sustain('timer-1000');
   setTimeout(function(){ disposable1.dispose() }, 1000);
 }
 
 function createRandomDiv(lapse)
 {
 	//console.log('createRandomDiv!', lapse.name);
-	var disposable = lapse.extend('create-random-div');
+	var disposable = lapse.sustain('create-random-div');
 
 	var div = document.createElement('div');
 	div.style.position = "absolute";
