@@ -228,7 +228,7 @@ module Sequenx
             this.do(lapse =>
             {
                 const sustain = lapse.sustain();
-                setTimeout(() => { sustain.dispose() });
+                setTimeout(() => { sustain.dispose() }, duration);
             }, message ? message : "Wait " + (duration / 1000) + "s");
         }
 

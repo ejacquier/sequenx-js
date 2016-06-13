@@ -335,7 +335,7 @@ var Sequenx;
         Sequence.prototype.doWait = function (duration, message) {
             this.do(function (lapse) {
                 var sustain = lapse.sustain();
-                setTimeout(function () { sustain.dispose(); });
+                setTimeout(function () { sustain.dispose(); }, duration);
             }, message ? message : "Wait " + (duration / 1000) + "s");
         };
         Sequence.prototype.doWaitForDispose = function (message) {
