@@ -289,8 +289,8 @@ var Sequenx;
             }
             catch (error) {
                 this._isExecuting = false;
-                this._log.error(error + "\n" + error.stack);
-                this.scheduleNext();
+                this.dispose();
+                throw error;
             }
         };
         Sequence.prototype.onLastItemCompleted = function () {

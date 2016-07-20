@@ -156,8 +156,10 @@ module Sequenx
             catch (error)
             {
                 this._isExecuting = false;
-                this._log.error(error + "\n" + error.stack);
-                this.scheduleNext();
+                //Cancel sequence if there was an error
+                this.dispose();
+                throw error;
+                //this._log.error(error + "\n" + error.stack);
             }
         }
 
