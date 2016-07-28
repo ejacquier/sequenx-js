@@ -131,7 +131,7 @@ module Sequenx
                 // Any message attached?
                 if (item.message)
                     this._log.info("Message: " + item.message);
-                    
+
                 this._isExecuting = false;
                 this.scheduleNext();
                 return;
@@ -191,7 +191,6 @@ module Sequenx
             this._lapseDisposables.dispose();
             this._log.dispose();
             this._completedSubject.onCompleted();
-            this._completedSubject.dispose();
         }
 
         // ICompletableExtensions

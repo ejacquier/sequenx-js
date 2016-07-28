@@ -157,7 +157,6 @@ var Sequenx;
             this._isDisposed = true;
             this._log.dispose();
             this._completedSubject.onCompleted();
-            this._completedSubject.dispose();
         };
         Lapse.prototype.onCompleted = function (action) {
             return this.completed.subscribeOnCompleted(action);
@@ -314,7 +313,6 @@ var Sequenx;
             this._lapseDisposables.dispose();
             this._log.dispose();
             this._completedSubject.onCompleted();
-            this._completedSubject.dispose();
         };
         Sequence.prototype.onCompleted = function (action) {
             return this.completed.subscribeOnCompleted(action);
