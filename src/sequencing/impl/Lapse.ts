@@ -89,6 +89,7 @@ module Sequenx
             this._log.dispose();
             
             this._completedSubject.onCompleted();
+            this._completedSubject.dispose();
         }
 
         //ICompletableExtensions

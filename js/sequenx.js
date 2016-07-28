@@ -157,6 +157,7 @@ var Sequenx;
             this._isDisposed = true;
             this._log.dispose();
             this._completedSubject.onCompleted();
+            this._completedSubject.dispose();
         };
         Lapse.prototype.onCompleted = function (action) {
             return this.completed.subscribeOnCompleted(action);
@@ -273,6 +274,8 @@ var Sequenx;
             if (!item.action) {
                 if (item.message)
                     this._log.info("Message: " + item.message);
+                this._isExecuting = false;
+                this.scheduleNext();
                 return;
             }
             var lapse = new Sequenx.Lapse(this._log.getChild(item.message));
@@ -311,6 +314,7 @@ var Sequenx;
             this._lapseDisposables.dispose();
             this._log.dispose();
             this._completedSubject.onCompleted();
+            this._completedSubject.dispose();
         };
         Sequence.prototype.onCompleted = function (action) {
             return this.completed.subscribeOnCompleted(action);
