@@ -278,6 +278,7 @@ module Sequenx
 
         public doSequence(action: (sequence: ISequence) => void, message?: string): void
         {
+            message = message ? message : "Sequence";
             this.do(lapse => 
             {
                 const sustain = lapse.sustain();
@@ -285,14 +286,14 @@ module Sequenx
                 const log = this.getChildLog(message);
                 const seq = new Sequence(log);
                 seq.onCompleted(() => sustain.dispose());
-                lapse.onCompleted(seq.dispose);
+                lapse.onCompleted(() => seq.dispose());
 
                 // Let action enqueue actions into sequence
                 action(seq);
 
                 seq.start();
 
-            }, message ? message : "Sequence");
+            }, message);
         }
 
     }

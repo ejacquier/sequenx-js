@@ -369,15 +369,16 @@ var Sequenx;
         };
         Sequence.prototype.doSequence = function (action, message) {
             var _this = this;
+            message = message ? message : "Sequence";
             this.do(function (lapse) {
                 var sustain = lapse.sustain();
                 var log = _this.getChildLog(message);
                 var seq = new Sequence(log);
                 seq.onCompleted(function () { return sustain.dispose(); });
-                lapse.onCompleted(seq.dispose);
+                lapse.onCompleted(function () { return seq.dispose(); });
                 action(seq);
                 seq.start();
-            }, message ? message : "Sequence");
+            }, message);
         };
         return Sequence;
     }());
