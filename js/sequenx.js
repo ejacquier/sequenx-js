@@ -196,6 +196,10 @@ var Sequenx;
             this._pendingExecution = Rx.Disposable.empty;
             this._items = new Array();
             this._completedSubject = new Rx.Subject();
+            this._isStarted = false;
+            this._isDisposed = false;
+            this._isCompleted = false;
+            this._isExecuting = false;
             if (nameOrLog) {
                 if (typeof nameOrLog === "string")
                     this._log = new Sequenx.Log(nameOrLog);
@@ -302,12 +306,13 @@ var Sequenx;
             if (this._isDisposed)
                 return;
             if (!this._isCompleted)
-                this._log.info("Cancelling");
+                this._log.warning("Cancelling (" + this._items.length + " items)");
             this.onSequenceComplete();
         };
         Sequence.prototype.onSequenceComplete = function () {
             if (this._isCompleted)
                 return;
+            this._items.length = 0;
             this._isCompleted = true;
             this._isDisposed = true;
             this._lapseDisposables.dispose();

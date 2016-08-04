@@ -41,7 +41,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    interface ILapse extends ICompletable {
+    interface ILapse extends ICompletable, Rx.IDisposable {
         sustain(name?: string): Rx.IDisposable;
         getChildLog(name: string): ILog;
         name: string;
@@ -51,7 +51,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    interface ISequence extends ICompletable {
+    interface ISequence extends ICompletable, Rx.IDisposable {
         skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
         skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
         getChildLog(name: string): ILog;
@@ -76,7 +76,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    class Lapse implements ILapse, Rx.IDisposable {
+    class Lapse implements ILapse {
         private _isStarted;
         private _isDisposed;
         private _isCompleted;
@@ -98,7 +98,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    class Sequence implements ISequence, Rx.IDisposable {
+    class Sequence implements ISequence {
         protected _log: ILog;
         private _lapseDisposables;
         private _currentLapseDisposable;

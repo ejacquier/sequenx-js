@@ -6,7 +6,7 @@
 
 module Sequenx
 {
-    export class Sequence implements ISequence, Rx.IDisposable
+    export class Sequence implements ISequence
     {
         protected _log: ILog;
         private _lapseDisposables: Rx.CompositeDisposable = new Rx.CompositeDisposable();
@@ -15,10 +15,10 @@ module Sequenx
         private _items: Array<Item> = new Array<Item>();
         private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
 
-        private _isStarted: boolean;
-        private _isDisposed: boolean;
-        private _isCompleted: boolean;
-        private _isExecuting: boolean;
+        private _isStarted: boolean = false;
+        private _isDisposed: boolean = false;
+        private _isCompleted: boolean = false;
+        private _isExecuting: boolean = false;
 
         get completed(): Rx.Observable<any>
         {
@@ -176,7 +176,7 @@ module Sequenx
                 return;
 
             if (!this._isCompleted)
-                this._log.info("Cancelling");
+                this._log.warning("Cancelling (" + this._items.length  + " items)");
 
             this.onSequenceComplete();
         }
@@ -185,7 +185,8 @@ module Sequenx
         {
             if (this._isCompleted)
                 return;
-
+            
+            this._items.length = 0;
             this._isCompleted = true;
             this._isDisposed = true;
             this._lapseDisposables.dispose();
