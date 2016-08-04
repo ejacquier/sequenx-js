@@ -131,7 +131,7 @@ module Sequenx
                 // Any message attached?
                 if (item.message)
                     this._log.info("Message: " + item.message);
-
+                
                 this._isExecuting = false;
                 this.scheduleNext();
                 return;

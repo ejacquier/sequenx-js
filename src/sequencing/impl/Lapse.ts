@@ -6,7 +6,7 @@
 
 module Sequenx
 {
-    export class Lapse implements ILapse, Rx.IDisposable
+    export class Lapse implements ILapse
     {
         private _isStarted: boolean;
         private _isDisposed: boolean;

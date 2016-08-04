@@ -3,7 +3,7 @@
 
 module Sequenx
 {
-    export interface ISequence extends ICompletable
+    export interface ISequence extends ICompletable, Rx.IDisposable
     {
         skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
         skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;

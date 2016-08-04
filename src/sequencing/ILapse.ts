@@ -3,7 +3,7 @@
 
 module Sequenx
 {
-    export interface ILapse extends ICompletable
+    export interface ILapse extends ICompletable, Rx.IDisposable
     {
         sustain(name?: string): Rx.IDisposable;
         getChildLog(name: string): ILog;
