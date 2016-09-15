@@ -111,19 +111,20 @@ describe("Lapse", function() {
     it("should be able to start a sequence with 2 action in order", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-            delayDispose(lapse);
-        });
-        seq.do(lapse => {
-            spy += "B";
-            delayDispose(lapse);
-        });
-        seq.onCompleted(() => {
-            expect(spy.length, "action not executed").to.equal(2);
-            expect(spy, "action not executed in order").to.equal("AB");
-            done();
-        });
+        seq
+            .do(lapse => {
+                spy += "A";
+                delayDispose(lapse);
+            })
+            .do(lapse => {
+                spy += "B";
+                delayDispose(lapse);
+            })
+            .onCompleted(() => {
+                expect(spy.length, "action not executed").to.equal(2);
+                expect(spy, "action not executed in order").to.equal("AB");
+                done();
+            });
         seq.start();
     });
 
@@ -170,7 +171,6 @@ describe("Lapse", function() {
     it("should be able to create and skip to the mark (doMark, skipToMarker)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        var mark = {};
         seq.do(lapse => {
             spy += "A";
             delayDispose(lapse);
@@ -179,7 +179,7 @@ describe("Lapse", function() {
             spy += "B";
             delayDispose(lapse);
         });
-        seq.doMark(mark);
+        seq.doMark("mark");
         seq.do(lapse => {
             spy += "C";
             delayDispose(lapse);
@@ -189,7 +189,7 @@ describe("Lapse", function() {
             done();
         });
         seq.start();
-        seq.skipToMarker(mark);
+        seq.skipToMarker("mark");
     });
 
 

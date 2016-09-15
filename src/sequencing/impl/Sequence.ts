@@ -200,17 +200,18 @@ module Sequenx
 
         // ISequenceExtensions
 
-        public do(action: (lapse?: ILapse) => void, message?: string): void
+        public do(action: (lapse?: ILapse) => void, message?: string): ISequence
         {
             if (action != null)
                 this.add(new Item(action, message));
+            return this;
         }
 
-        public doMark(marker?: any): any
+        public doMark(marker?: any): ISequence
         {
             const mark = marker ? marker : {};
             this.add(new Item(null, null, mark));
-            return mark;
+            return this;
         }
 
         public skipToMarker(marker: any, cancelCurrent?: boolean): void
@@ -225,13 +226,14 @@ module Sequenx
             this.skip(x => true, cancelCurrent);
         }
 
-        public doWait(duration: number, message?: string): void
+        public doWait(duration: number, message?: string): ISequence
         {
             this.do(lapse =>
             {
                 const sustain = lapse.sustain();
                 setTimeout(() => { sustain.dispose() }, duration);
             }, message ? message : "Wait " + (duration / 1000) + "s");
+            return this;
         }
 
         public doWaitForDispose(message?: string): Rx.IDisposable
@@ -241,40 +243,45 @@ module Sequenx
             return disposable;
         }
 
-        public doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): void
+        public doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): ISequence
         {
             const disposable = new Rx.SingleAssignmentDisposable();
             observable.subscribeOnCompleted(() => disposable.dispose());
             this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForCompleted");
+            return this;
         }
 
-        public doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void
+        public doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): ISequence
         {
             const disposable = new Rx.SingleAssignmentDisposable();
             observable.subscribeOnNext(() => disposable.dispose());
             this.do(lapse => disposable.setDisposable(lapse.sustain()), message ? message : "WaitForNext");
+            return this;
         }
 
-        public doWaitFor(completable: ICompletable, message?: string): void
+        public doWaitFor(completable: ICompletable, message?: string): ISequence
         {
             this.doWaitForCompleted(completable.completed, message);
+            return this;
         }
 
-        public doParallel(action: (parallel: IParallel) => void, message?: string): void
+        public doParallel(action: (parallel: IParallel) => void, message?: string): ISequence
         {
             this.do(lapse =>
             {
                 const parallel = new Parallel(lapse);
                 action(parallel);
             }, message ? message : "Parallel");
+            return this;
         }
 
-        public doDispose(disposable: Rx.IDisposable, message?: string): void
+        public doDispose(disposable: Rx.IDisposable, message?: string): ISequence
         {
             this.do(lapse => disposable.dispose(), message ? message : "Dispose");
+            return this;
         }
 
-        public doSequence(action: (sequence: ISequence) => void, message?: string): void
+        public doSequence(action: (sequence: ISequence) => void, message?: string): ISequence
         {
             message = message ? message : "Sequence";
             this.do(lapse => 
@@ -292,6 +299,7 @@ module Sequenx
                 seq.start();
 
             }, message);
+            return this;
         }
 
     }

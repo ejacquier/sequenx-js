@@ -124,7 +124,6 @@ var Sequenx;
             get: function () {
                 return this._log.name;
             },
-            set: function (value) { },
             enumerable: true,
             configurable: true
         });
@@ -326,11 +325,12 @@ var Sequenx;
         Sequence.prototype.do = function (action, message) {
             if (action != null)
                 this.add(new Item(action, message));
+            return this;
         };
         Sequence.prototype.doMark = function (marker) {
             var mark = marker ? marker : {};
             this.add(new Item(null, null, mark));
-            return mark;
+            return this;
         };
         Sequence.prototype.skipToMarker = function (marker, cancelCurrent) {
             cancelCurrent = cancelCurrent == undefined ? false : cancelCurrent;
@@ -345,6 +345,7 @@ var Sequenx;
                 var sustain = lapse.sustain();
                 setTimeout(function () { sustain.dispose(); }, duration);
             }, message ? message : "Wait " + (duration / 1000) + "s");
+            return this;
         };
         Sequence.prototype.doWaitForDispose = function (message) {
             var disposable = new Rx.SingleAssignmentDisposable();
@@ -355,23 +356,28 @@ var Sequenx;
             var disposable = new Rx.SingleAssignmentDisposable();
             observable.subscribeOnCompleted(function () { return disposable.dispose(); });
             this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForCompleted");
+            return this;
         };
         Sequence.prototype.doWaitForNext = function (observable, message) {
             var disposable = new Rx.SingleAssignmentDisposable();
             observable.subscribeOnNext(function () { return disposable.dispose(); });
             this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForNext");
+            return this;
         };
         Sequence.prototype.doWaitFor = function (completable, message) {
             this.doWaitForCompleted(completable.completed, message);
+            return this;
         };
         Sequence.prototype.doParallel = function (action, message) {
             this.do(function (lapse) {
                 var parallel = new Sequenx.Parallel(lapse);
                 action(parallel);
             }, message ? message : "Parallel");
+            return this;
         };
         Sequence.prototype.doDispose = function (disposable, message) {
             this.do(function (lapse) { return disposable.dispose(); }, message ? message : "Dispose");
+            return this;
         };
         Sequence.prototype.doSequence = function (action, message) {
             var _this = this;
@@ -385,6 +391,7 @@ var Sequenx;
                 action(seq);
                 seq.start();
             }, message);
+            return this;
         };
         return Sequence;
     }());

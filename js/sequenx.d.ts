@@ -57,18 +57,18 @@ declare module Sequenx {
         getChildLog(name: string): ILog;
         name: string;
         onCompleted(action: () => void): Rx.IDisposable;
-        do(action: (lapse?: ILapse) => void, message?: string): void;
-        doMark(marker?: any): any;
+        do(action: (lapse?: ILapse) => void, message?: string): ISequence;
+        doMark(marker?: any): ISequence;
         skipToMarker(marker: any, cancelCurrent: boolean): void;
         skipToEnd(cancelCurrent?: boolean): void;
-        doWait(duration: number, message?: string): void;
+        doWait(duration: number, message?: string): ISequence;
         doWaitForDispose(message?: string): Rx.IDisposable;
-        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): void;
-        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void;
-        doWaitFor(completable: ICompletable, message?: string): void;
-        doParallel(action: (parallel: IParallel) => void, message?: string): void;
-        doDispose(disposable: Rx.IDisposable, message?: string): void;
-        doSequence(action: (sequence: ISequence) => void, message?: string): void;
+        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): ISequence;
+        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): ISequence;
+        doWaitFor(completable: ICompletable, message?: string): ISequence;
+        doParallel(action: (parallel: IParallel) => void, message?: string): ISequence;
+        doDispose(disposable: Rx.IDisposable, message?: string): ISequence;
+        doSequence(action: (sequence: ISequence) => void, message?: string): ISequence;
     }
 }
 declare module Sequenx {
@@ -123,18 +123,18 @@ declare module Sequenx {
         dispose(): void;
         private onSequenceComplete();
         onCompleted(action: () => void): Rx.IDisposable;
-        do(action: (lapse?: ILapse) => void, message?: string): void;
-        doMark(marker?: any): any;
+        do(action: (lapse?: ILapse) => void, message?: string): ISequence;
+        doMark(marker?: any): ISequence;
         skipToMarker(marker: any, cancelCurrent?: boolean): void;
         skipToEnd(cancelCurrent?: boolean): void;
-        doWait(duration: number, message?: string): void;
+        doWait(duration: number, message?: string): ISequence;
         doWaitForDispose(message?: string): Rx.IDisposable;
-        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): void;
-        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void;
-        doWaitFor(completable: ICompletable, message?: string): void;
-        doParallel(action: (parallel: IParallel) => void, message?: string): void;
-        doDispose(disposable: Rx.IDisposable, message?: string): void;
-        doSequence(action: (sequence: ISequence) => void, message?: string): void;
+        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): ISequence;
+        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): ISequence;
+        doWaitFor(completable: ICompletable, message?: string): ISequence;
+        doParallel(action: (parallel: IParallel) => void, message?: string): ISequence;
+        doDispose(disposable: Rx.IDisposable, message?: string): ISequence;
+        doSequence(action: (sequence: ISequence) => void, message?: string): ISequence;
     }
     class Item {
         action: (lapse?: ILapse) => void;
