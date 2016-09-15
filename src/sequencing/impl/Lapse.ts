@@ -1,6 +1,5 @@
 /// <reference path="../ICompletable.ts"/>
 /// <reference path="../ILapse.ts"/>
-/// <reference path="../../../typings/rx.d.ts"/>
 /// <reference path="../../logging/ILog.ts"/>
 /// <reference path="../../logging/Log.ts"/>
 
@@ -24,18 +23,18 @@ module Sequenx
         {
 
         }
-        
+
         get name(): string
         {
             return this._log.name;
         }
-        
-        set name(value:string){}
 
-        constructor(nameOrLog: string | ILog)
+        constructor(nameOrLog?: string | ILog)
         {
-            if (typeof nameOrLog === "string")
-                this._log = new Log(name);
+            if (!nameOrLog)
+                this._log = new Log("");
+            else if (typeof nameOrLog === "string")
+                this._log = new Log(nameOrLog);
             else
                 this._log = nameOrLog as ILog;
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() => this.lapseCompleted()));
@@ -87,7 +86,7 @@ module Sequenx
             this._isCompleted = true;
             this._isDisposed = true;
             this._log.dispose();
-            
+
             this._completedSubject.onCompleted();
         }
 
