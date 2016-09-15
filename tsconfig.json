@@ -1,21 +1,6 @@
 {
-    "formatCodeOptions": {
-        "indentSize": 4,
-        "tabSize": 4,
-        "newLineCharacter": "\r\n",
-        "convertTabsToSpaces": true,
-        "insertSpaceAfterCommaDelimiter": true,
-        "insertSpaceAfterSemicolonInForStatements": true,
-        "insertSpaceBeforeAndAfterBinaryOperators": true,
-        "insertSpaceAfterKeywordsInControlFlowStatements": true,
-        "insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
-        "insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
-        "placeOpenBraceOnNewLineForFunctions": true,
-        "placeOpenBraceOnNewLineForControlBlocks": true
-    },
     "compilerOptions": {
         "target": "es5",
-        "module": "commonjs",
         "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
@@ -23,25 +8,8 @@
         "outFile": "js/sequenx.js",
         "sourceMap": true
     },
-    "filesGlob": [
-        "./**/*.ts",
-        "!node_modules/**/*.ts"
-    ],
-    "files": [
-        "./js/sequenx.d.ts",
-        "./src/sequencing/ICompletable.ts",
-        "./src/sequencing/ILapse.ts",
-        "./src/sequencing/impl/Lapse.ts",
-        "./src/sequencing/impl/Parallel.ts",
-        "./src/sequencing/impl/Sequence.ts",
-        "./src/sequencing/IParallel.ts",
-        "./src/sequencing/ISequence.ts",
-        "./typings/rx.d.ts"
-    ],
-    "atom": {
-        "rewriteTsconfig": true,
-        "formatOnSave": true
-    },
-    "buildOnSave": false,
-    "compileOnSave": false
+    "exclude": [
+        "node_modules",
+        "js"
+    ]
 }

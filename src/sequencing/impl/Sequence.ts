@@ -32,17 +32,15 @@ module Sequenx
             return this._log.name;
         }
 
-        set name(value: string) { }
-
         constructor(nameOrLog?: string | ILog)
         {
-            if (nameOrLog)
-            {
-                if (typeof nameOrLog === "string")
-                    this._log = new Log(nameOrLog);
-                else
-                    this._log = nameOrLog;
-            }
+            if (!nameOrLog)
+                this._log = new Log("");
+            else if (typeof nameOrLog === "string")
+                this._log = new Log(nameOrLog);
+            else
+                this._log = nameOrLog;
+
         }
 
         public getChildLog(name: string): ILog
@@ -57,7 +55,6 @@ module Sequenx
                 this._log.error("Trying to add something other than Sequenx.Item, use do if you use a function(lapse)");
                 return;
             }
-            
             if (this._isDisposed)
                 throw new Error("Trying to add action to a disposed sequence.");
 
@@ -131,7 +128,7 @@ module Sequenx
                 // Any message attached?
                 if (item.message)
                     this._log.info("Message: " + item.message);
-                
+
                 this._isExecuting = false;
                 this.scheduleNext();
                 return;
@@ -176,7 +173,7 @@ module Sequenx
                 return;
 
             if (!this._isCompleted)
-                this._log.warning("Cancelling (" + this._items.length  + " items)");
+                this._log.warning("Cancelling (" + this._items.length + " items)");
 
             this.onSequenceComplete();
         }
@@ -185,7 +182,7 @@ module Sequenx
         {
             if (this._isCompleted)
                 return;
-            
+
             this._items.length = 0;
             this._isCompleted = true;
             this._isDisposed = true;
@@ -265,7 +262,7 @@ module Sequenx
 
         public doParallel(action: (parallel: IParallel) => void, message?: string): void
         {
-            this.do(lapse => 
+            this.do(lapse =>
             {
                 const parallel = new Parallel(lapse);
                 action(parallel);
@@ -307,14 +304,14 @@ module Sequenx
 
         constructor(action?: (lapse?: ILapse) => void, message?: string, data?: any)
         {
-            this.action = action ? action : () => {};
+            this.action = action ? action : () => { };
             this.message = message;
             this.data = data;
         }
-        
-        public toString():string
+
+        public toString(): string
         {
-            return "[Item] msg %s action %s data %s", this.message, this.action != null, this.data;    
+            return "[Item] msg %s action %s data %s", this.message, this.action != null, this.data;
         }
     }
 }

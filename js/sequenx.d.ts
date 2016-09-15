@@ -85,7 +85,7 @@ declare module Sequenx {
         private _log;
         completed: Rx.Observable<any>;
         name: string;
-        constructor(nameOrLog: string | ILog);
+        constructor(nameOrLog?: string | ILog);
         getChildLog(name: string): ILog;
         sustain(name?: string): Rx.IDisposable;
         start(): void;

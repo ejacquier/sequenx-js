@@ -103,8 +103,10 @@ var Sequenx;
         function Lapse(nameOrLog) {
             var _this = this;
             this._completedSubject = new Rx.Subject();
-            if (typeof nameOrLog === "string")
-                this._log = new Sequenx.Log(name);
+            if (!nameOrLog)
+                this._log = new Sequenx.Log("");
+            else if (typeof nameOrLog === "string")
+                this._log = new Sequenx.Log(nameOrLog);
             else
                 this._log = nameOrLog;
             this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(function () { return _this.lapseCompleted(); }));
@@ -200,12 +202,12 @@ var Sequenx;
             this._isDisposed = false;
             this._isCompleted = false;
             this._isExecuting = false;
-            if (nameOrLog) {
-                if (typeof nameOrLog === "string")
-                    this._log = new Sequenx.Log(nameOrLog);
-                else
-                    this._log = nameOrLog;
-            }
+            if (!nameOrLog)
+                this._log = new Sequenx.Log("");
+            else if (typeof nameOrLog === "string")
+                this._log = new Sequenx.Log(nameOrLog);
+            else
+                this._log = nameOrLog;
         }
         Object.defineProperty(Sequence.prototype, "completed", {
             get: function () {
@@ -219,7 +221,6 @@ var Sequenx;
             get: function () {
                 return this._log.name;
             },
-            set: function (value) { },
             enumerable: true,
             configurable: true
         });
@@ -445,3 +446,4 @@ var Sequenx;
     }(Sequenx.Sequence));
     Sequenx.Parallel = Parallel;
 })(Sequenx || (Sequenx = {}));
+//# sourceMappingURL=sequenx.js.map

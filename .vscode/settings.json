@@ -1,0 +1,7 @@
+{
+    "editor.tabSize": 4,
+    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+    "typescript.format.placeOpenBraceOnNewLineForFunctions": true,
+    "typescript.format.placeOpenBraceOnNewLineForControlBlocks": true,
+    "bookmarks.navigateThroughAllFiles": true
+}
