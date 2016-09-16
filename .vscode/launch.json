@@ -20,7 +20,7 @@
             "sourceMaps": true,
             "args": [
                 "--colors",
-                "${workspaceRoot}/test/**/*.js"
+                "${workspaceRoot}/test/**/*test.js"
             ], //you can specify paths to specific tests here
             "cwd": "${workspaceRoot}",
             "runtimeExecutable": null,

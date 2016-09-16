@@ -16,7 +16,7 @@ module.exports = function(grunt) {
     ts: {
       
         application: {
-          src: ["src/**/*.ts", "!node_modules/**/*.ts"],
+          src: ["src/**/*.ts","typings/**/*.ts", "!node_modules/**/*.ts"],
           out: "js/sequenx.js"
         },
         options: {
@@ -35,7 +35,7 @@ module.exports = function(grunt) {
             colors: true,
             //reporter:"nyan"
         },
-        all: ['test/*.js']
+        all: ['test/*test.js']
     },
     mocha_istanbul: {
         src: 'test',
@@ -67,5 +67,6 @@ module.exports = function(grunt) {
   grunt.registerTask('node', ['ts','concat:node', 'uglify']);
   grunt.registerTask('dev', ['ts']);
   grunt.registerTask('test', ['ts','concat:node', 'mochacli']);
+  grunt.registerTask('test_coverage', ['ts','concat:node', 'mocha_istanbul']);
 
 };

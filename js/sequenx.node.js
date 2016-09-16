@@ -5,6 +5,53 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Sequenx;
 (function (Sequenx) {
+    var Disposable = (function () {
+        function Disposable(action) {
+            this.action = action;
+            this._isDisposed = false;
+        }
+        Disposable.create = function (action) {
+            return new Disposable(action);
+        };
+        Object.defineProperty(Disposable.prototype, "isDisposed", {
+            get: function () {
+                return this._isDisposed;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Disposable.prototype.dispose = function () {
+            !this._isDisposed && this.action && this.action();
+            this._isDisposed = true;
+        };
+        Disposable.empty = new Disposable();
+        return Disposable;
+    }());
+    Sequenx.Disposable = Disposable;
+    var RefCountDisposable = (function (_super) {
+        __extends(RefCountDisposable, _super);
+        function RefCountDisposable(disposable) {
+            var _this = this;
+            _super.call(this, function () { return _this._self.dispose(); });
+            this.disposable = disposable;
+            this._count = 0;
+            this._self = this.getDisposable();
+        }
+        RefCountDisposable.prototype.getDisposable = function () {
+            var _this = this;
+            this._count++;
+            return this.isDisposed ? Disposable.empty : Disposable.create(function () {
+                _this._count--;
+                if (_this._count <= 0)
+                    _this.disposable.dispose();
+            });
+        };
+        return RefCountDisposable;
+    }(Disposable));
+    Sequenx.RefCountDisposable = RefCountDisposable;
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
     var Log = (function () {
         function Log(name, parent) {
             this._parent = parent;
@@ -99,104 +146,49 @@ var Sequenx;
 })(Sequenx || (Sequenx = {}));
 var Sequenx;
 (function (Sequenx) {
-    var Lapse = (function () {
-        function Lapse(nameOrLog) {
-            var _this = this;
-            this._completedSubject = new Rx.Subject();
-            if (!nameOrLog)
-                this._log = new Sequenx.Log("");
-            else if (typeof nameOrLog === "string")
-                this._log = new Sequenx.Log(nameOrLog);
-            else
-                this._log = nameOrLog;
-            this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(function () { return _this.lapseCompleted(); }));
+    var CallbackItem = (function () {
+        function CallbackItem(action, message) {
+            this.action = action;
+            this.message = message;
         }
-        Object.defineProperty(Lapse.prototype, "completed", {
-            get: function () {
-                return this._completedSubject;
-            },
-            set: function (value) {
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Lapse.prototype, "name", {
-            get: function () {
-                return this._log.name;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Lapse.prototype.getChildLog = function (name) {
-            return this._log.getChild(name);
-        };
-        Lapse.prototype.sustain = function (name) {
-            if (this._isCompleted || this._isDisposed)
-                return Rx.Disposable.empty;
-            if (name && Sequenx.Log.isEnabled)
-                this._log.info("Sustain " + name);
-            return this._refCountDisposable.getDisposable();
-        };
-        Lapse.prototype.start = function () {
-            if (this._isStarted || this._isCompleted || this._isDisposed)
-                return;
-            this._isStarted = true;
-            this._refCountDisposable.dispose();
-        };
-        Lapse.prototype.dispose = function () {
-            if (this._isDisposed)
-                return;
-            if (!this._isCompleted) {
-                this._log.info("Cancelling");
+        CallbackItem.prototype.start = function (cb) {
+            if (this.action.length > 0)
+                this.action(cb);
+            else {
+                this.action();
+                cb();
             }
-            this.lapseCompleted();
         };
-        Lapse.prototype.lapseCompleted = function () {
-            if (this._isCompleted)
-                return;
-            this._isCompleted = true;
-            this._isDisposed = true;
-            this._log.dispose();
-            this._completedSubject.onCompleted();
+        CallbackItem.prototype.toString = function () {
+            return "[Item] msg %s action %s", this.message, (this.action != null).toString();
         };
-        Lapse.prototype.onCompleted = function (action) {
-            return this.completed.subscribeOnCompleted(action);
-        };
-        Lapse.prototype.sequence = function (action, message) {
-            var sustain = this.sustain();
-            var name = message ? message : 'Sequence';
-            var log = this.getChildLog(name);
-            var seq = new Sequenx.Sequence(log);
-            seq.onCompleted(function () { return sustain.dispose(); });
-            action(seq);
-            seq.start();
-            return seq;
-        };
-        Lapse.prototype.child = function (action, message) {
-            var sustain = this.sustain();
-            var name = message ? message : 'Child';
-            var log = this.getChildLog(name);
-            var child = new Lapse(log);
-            child.onCompleted(function () { return sustain.dispose(); });
-            action(child);
-            child.start();
-        };
-        Lapse.prototype.disposeOnComplete = function (disposable) {
-            this.onCompleted(function () { return disposable.dispose(); });
-        };
-        return Lapse;
+        return CallbackItem;
     }());
-    Sequenx.Lapse = Lapse;
+    Sequenx.CallbackItem = CallbackItem;
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    var MarkItem = (function () {
+        function MarkItem(marker, message) {
+            this.marker = marker;
+            this.message = message;
+        }
+        MarkItem.prototype.start = function (cb) {
+            cb();
+        };
+        MarkItem.prototype.toString = function () {
+            return "[Item] msg %s mark %s", this.message, this.marker;
+        };
+        return MarkItem;
+    }());
+    Sequenx.MarkItem = MarkItem;
 })(Sequenx || (Sequenx = {}));
 var Sequenx;
 (function (Sequenx) {
     var Sequence = (function () {
         function Sequence(nameOrLog) {
-            this._lapseDisposables = new Rx.CompositeDisposable();
-            this._currentLapseDisposable = Rx.Disposable.empty;
-            this._pendingExecution = Rx.Disposable.empty;
+            this._pendingExecution = Sequenx.Disposable.empty;
             this._items = new Array();
-            this._completedSubject = new Rx.Subject();
             this._isStarted = false;
             this._isDisposed = false;
             this._isCompleted = false;
@@ -208,14 +200,6 @@ var Sequenx;
             else
                 this._log = nameOrLog;
         }
-        Object.defineProperty(Sequence.prototype, "completed", {
-            get: function () {
-                return this._completedSubject;
-            },
-            set: function (value) { },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Sequence.prototype, "name", {
             get: function () {
                 return this._log.name;
@@ -227,7 +211,7 @@ var Sequenx;
             return this._log.getChild(name);
         };
         Sequence.prototype.add = function (item) {
-            if (!(item instanceof Sequenx.Item)) {
+            if (!item.start) {
                 this._log.error("Trying to add something other than Sequenx.Item, use do if you use a function(lapse)");
                 return;
             }
@@ -235,30 +219,11 @@ var Sequenx;
                 throw new Error("Trying to add action to a disposed sequence.");
             this._items.push(item);
         };
-        Sequence.prototype.skip = function (predicate, cancelCurrent) {
-            while (this._items.length > 0 && predicate(this._items[0]))
-                this._items.splice(0, 1);
-            if (cancelCurrent)
-                this._currentLapseDisposable.dispose();
-        };
-        Sequence.prototype.skipTo = function (predicate, cancelCurrent) {
-            var index = -1;
-            for (var i = 0; i < this._items.length; i++) {
-                if (predicate(this._items[i])) {
-                    index = i;
-                    break;
-                }
-            }
-            if (index != -1) {
-                this._items = this._items.slice(index);
-                if (cancelCurrent)
-                    this._currentLapseDisposable.dispose();
-            }
-        };
-        Sequence.prototype.start = function () {
+        Sequence.prototype.start = function (cb) {
             if (this._isStarted || this._isDisposed)
                 return;
             this._isStarted = true;
+            this._cbComplete = cb;
             this.scheduleNext();
         };
         Sequence.prototype.scheduleNext = function () {
@@ -274,24 +239,12 @@ var Sequenx;
                 return;
             }
             var item = this._items.shift();
-            if (!item.action) {
-                if (item.message)
-                    this._log.info("Message: " + item.message);
-                this._isExecuting = false;
-                this.scheduleNext();
-                return;
-            }
-            var lapse = new Sequenx.Lapse(this._log.getChild(item.message));
-            this._currentLapseDisposable = lapse;
-            this._lapseDisposables.add(lapse);
-            lapse.onCompleted(function () {
-                _this._isExecuting = false;
-                _this.scheduleNext();
-            });
             try {
                 this._isExecuting = true;
-                item.action(lapse);
-                lapse.start();
+                item.start(function () {
+                    _this._isExecuting = false;
+                    _this.scheduleNext();
+                });
             }
             catch (error) {
                 this._isExecuting = false;
@@ -315,143 +268,200 @@ var Sequenx;
             this._items.length = 0;
             this._isCompleted = true;
             this._isDisposed = true;
-            this._lapseDisposables.dispose();
             this._log.dispose();
-            this._completedSubject.onCompleted();
+            this._cbComplete && this._cbComplete();
         };
-        Sequence.prototype.onCompleted = function (action) {
-            return this.completed.subscribeOnCompleted(action);
+        Sequence.prototype.doDispose = function (disposable, message) {
+            this.do(function () { return disposable.dispose(); }, message ? message : "Dispose");
+            return this;
         };
         Sequence.prototype.do = function (action, message) {
-            if (action != null)
-                this.add(new Item(action, message));
+            this.add(new Sequenx.CallbackItem(action, message));
             return this;
-        };
-        Sequence.prototype.doMark = function (marker) {
-            var mark = marker ? marker : {};
-            this.add(new Item(null, null, mark));
-            return this;
-        };
-        Sequence.prototype.skipToMarker = function (marker, cancelCurrent) {
-            cancelCurrent = cancelCurrent == undefined ? false : cancelCurrent;
-            this.skipTo(function (x) { return x.data === marker; }, cancelCurrent);
-        };
-        Sequence.prototype.skipToEnd = function (cancelCurrent) {
-            cancelCurrent = cancelCurrent == undefined ? false : cancelCurrent;
-            this.skip(function (x) { return true; }, cancelCurrent);
         };
         Sequence.prototype.doWait = function (duration, message) {
-            this.do(function (lapse) {
-                var sustain = lapse.sustain();
-                setTimeout(function () { sustain.dispose(); }, duration);
-            }, message ? message : "Wait " + (duration / 1000) + "s");
+            this.do(function (done) { return setTimeout(done, duration); }, message ? message : "Wait " + (duration / 1000) + "s");
             return this;
         };
-        Sequence.prototype.doWaitForDispose = function (message) {
-            var disposable = new Rx.SingleAssignmentDisposable();
-            this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForDispose");
+        Sequence.prototype.doWaitForDispose = function (duration, message) {
+            var disposable = new Sequenx.Disposable();
+            this.do(function (done) { disposable.action = done; }, message ? message : "WaitForDispose");
             return disposable;
         };
-        Sequence.prototype.doWaitForCompleted = function (observable, message) {
-            var disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnCompleted(function () { return disposable.dispose(); });
-            this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForCompleted");
-            return this;
-        };
-        Sequence.prototype.doWaitForNext = function (observable, message) {
-            var disposable = new Rx.SingleAssignmentDisposable();
-            observable.subscribeOnNext(function () { return disposable.dispose(); });
-            this.do(function (lapse) { return disposable.setDisposable(lapse.sustain()); }, message ? message : "WaitForNext");
-            return this;
-        };
-        Sequence.prototype.doWaitFor = function (completable, message) {
-            this.doWaitForCompleted(completable.completed, message);
+        Sequence.prototype.doMark = function (marker) {
+            this.add(new Sequenx.MarkItem(marker));
             return this;
         };
         Sequence.prototype.doParallel = function (action, message) {
-            this.do(function (lapse) {
-                var parallel = new Sequenx.Parallel(lapse);
-                action(parallel);
-            }, message ? message : "Parallel");
-            return this;
-        };
-        Sequence.prototype.doDispose = function (disposable, message) {
-            this.do(function (lapse) { return disposable.dispose(); }, message ? message : "Dispose");
+            var parallel = new Sequenx.Parallel();
+            parallel.message = message ? message : "Parallel";
+            action(parallel);
+            this.add(parallel);
             return this;
         };
         Sequence.prototype.doSequence = function (action, message) {
-            var _this = this;
             message = message ? message : "Sequence";
-            this.do(function (lapse) {
-                var sustain = lapse.sustain();
-                var log = _this.getChildLog(message);
-                var seq = new Sequence(log);
-                seq.onCompleted(function () { return sustain.dispose(); });
-                lapse.onCompleted(function () { return seq.dispose(); });
-                action(seq);
-                seq.start();
-            }, message);
+            var sequence = new Sequence();
+            action(sequence);
+            this.add(sequence);
             return this;
+        };
+        Sequence.prototype.skipToMarker = function (marker, cancelCurrent) {
+            if (cancelCurrent === void 0) { cancelCurrent = false; }
+            this.skipTo(function (x) { return x instanceof Sequenx.MarkItem && x.marker === marker; });
+        };
+        Sequence.prototype.skipToEnd = function () {
+            this.skip(function (x) { return true; });
+        };
+        Sequence.prototype.skip = function (predicate) {
+            while (this._items.length > 0 && predicate(this._items[0]))
+                this._items.splice(0, 1);
+        };
+        Sequence.prototype.skipTo = function (predicate) {
+            var index = -1;
+            for (var i = 0; i < this._items.length; i++) {
+                if (predicate(this._items[i])) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index !== -1) {
+                this._items = this._items.slice(index);
+            }
         };
         return Sequence;
     }());
     Sequenx.Sequence = Sequence;
-    var Item = (function () {
-        function Item(action, message, data) {
-            this.action = action ? action : function () { };
-            this.message = message;
-            this.data = data;
-        }
-        Item.prototype.toString = function () {
-            return "[Item] msg %s action %s data %s", this.message, this.action != null, this.data;
-        };
-        return Item;
-    }());
-    Sequenx.Item = Item;
 })(Sequenx || (Sequenx = {}));
 var Sequenx;
 (function (Sequenx) {
     var Parallel = (function (_super) {
         __extends(Parallel, _super);
-        function Parallel(lapse) {
+        function Parallel() {
             _super.call(this);
-            this._lapse = lapse;
         }
-        Object.defineProperty(Parallel.prototype, "completed", {
-            get: function () {
-                return this._lapse.completed;
-            },
-            set: function (value) { },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Parallel.prototype, "name", {
-            get: function () {
-                return this._lapse.name;
-            },
-            set: function (value) { },
-            enumerable: true,
-            configurable: true
-        });
-        Parallel.prototype.getChildLog = function (name) {
-            return this._lapse.getChildLog(name);
+        Parallel.prototype.scheduleNext = function () {
+            var _this = this;
+            var count = this._items.length;
+            if (!count)
+                return this._cbComplete && this._cbComplete();
+            this._items.forEach(function (item) { return item
+                .start(function () { return --count <= 0 && _this._cbComplete && _this._cbComplete(); }); });
+            this._items = [];
         };
-        Parallel.prototype.add = function (item) {
-            if (!(item instanceof Sequenx.Item)) {
-                this._log.error("Trying to add() something other than Sequenx.Item, use do if you use a function(lapse)");
-                return;
-            }
-            this._lapse.child(item.action, item.message);
-        };
-        Parallel.prototype.skip = function (predicate, cancelCurrent) {
+        Parallel.prototype.skip = function (predicate) {
             throw new Error("skip not implemented for Parallel");
         };
-        Parallel.prototype.skipTo = function (predicate, cancelCurrent) {
+        Parallel.prototype.skipTo = function (predicate) {
             throw new Error("skipTo not implemented for Parallel");
         };
         return Parallel;
     }(Sequenx.Sequence));
     Sequenx.Parallel = Parallel;
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    var Lapse = (function () {
+        function Lapse(nameOrLog) {
+            var _this = this;
+            if (!nameOrLog)
+                this._log = new Sequenx.Log("");
+            else if (typeof nameOrLog === "string")
+                this._log = new Sequenx.Log(nameOrLog);
+            else
+                this._log = nameOrLog;
+            this._refCountDisposable = new Sequenx.RefCountDisposable(Sequenx.Disposable.create(function () { return _this.lapseCompleted(); }));
+        }
+        Object.defineProperty(Lapse.prototype, "completed", {
+            set: function (value) {
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Lapse.prototype, "name", {
+            get: function () {
+                return this._log.name;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Lapse.prototype.getChildLog = function (name) {
+            return this._log.getChild(name);
+        };
+        Lapse.prototype.sustain = function (name) {
+            if (this._isCompleted || this._isDisposed)
+                return Rx.Disposable.empty;
+            if (name && Sequenx.Log.isEnabled)
+                this._log.info("Sustain " + name);
+            return this._refCountDisposable.getDisposable();
+        };
+        Lapse.prototype.start = function (cb) {
+            if (this._isStarted || this._isCompleted || this._isDisposed)
+                return;
+            this._isStarted = true;
+            this._completed = cb;
+            this._refCountDisposable.dispose();
+        };
+        Lapse.prototype.dispose = function () {
+            if (this._isDisposed)
+                return;
+            if (!this._isCompleted) {
+                this._log.info("Cancelling");
+            }
+            this.lapseCompleted();
+        };
+        Lapse.prototype.lapseCompleted = function () {
+            if (this._isCompleted)
+                return;
+            this._isCompleted = true;
+            this._isDisposed = true;
+            this._log.dispose();
+            this._completed && this._completed();
+        };
+        Lapse.prototype.sequence = function (action, message) {
+            var sustain = this.sustain();
+            var name = message ? message : 'Sequence';
+            var log = this.getChildLog(name);
+            var seq = new Sequenx.Sequence(log);
+            action(seq);
+            seq.start(function () { return sustain.dispose(); });
+            return seq;
+        };
+        Lapse.prototype.child = function (action, message) {
+            var sustain = this.sustain();
+            var name = message ? message : 'Child';
+            var log = this.getChildLog(name);
+            var child = new Lapse(log);
+            action(child);
+            child.start(function () { return sustain.dispose(); });
+        };
+        return Lapse;
+    }());
+    Sequenx.Lapse = Lapse;
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    Sequenx.Sequence.prototype.doLapse = function (action, message) {
+        if (message === void 0) { message = "Lapse"; }
+        var lapse = new Sequenx.Lapse(this.getChildLog(message));
+        this.do(function (done) {
+            action(lapse);
+            lapse.start(done);
+        });
+    };
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    Sequenx.Sequence.prototype.doPromise = function (action) {
+        if (action instanceof Promise)
+            this.do(function (done) { return action.then(function (v) { return done(); }); });
+        else
+            this.do(function (done) { return action().then(function (v) { return done(); }); });
+    };
+    Sequenx.Sequence.prototype.startPromise = function () {
+        var _this = this;
+        return new Promise(function (resolve) { return _this.start(resolve); });
+    };
 })(Sequenx || (Sequenx = {}));
 var Rx = require("rx-lite");
 module.exports = Sequenx;

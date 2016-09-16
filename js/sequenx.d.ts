@@ -1,5 +1,26 @@
 /// <reference path="../typings/rx.d.ts" />
 declare module Sequenx {
+    interface IDisposable {
+        dispose(): void;
+    }
+    class Disposable implements IDisposable {
+        action: () => void;
+        static empty: Disposable;
+        static create(action: () => void): Disposable;
+        private _isDisposed;
+        constructor(action?: () => void);
+        isDisposed: boolean;
+        dispose(): void;
+    }
+    class RefCountDisposable extends Disposable {
+        private disposable;
+        private _count;
+        private _self;
+        constructor(disposable: Disposable);
+        getDisposable(): IDisposable;
+    }
+}
+declare module Sequenx {
     interface ILog extends Rx.IDisposable {
         getChild(name: string): ILog;
         info(message: string, ...params: any[]): void;
@@ -37,122 +58,117 @@ declare module Sequenx {
 }
 declare module Sequenx {
     interface ICompletable {
-        completed: Rx.Observable<any>;
+        onCompleted(action: () => void): any;
     }
 }
 declare module Sequenx {
-    interface ILapse extends ICompletable, Rx.IDisposable {
-        sustain(name?: string): Rx.IDisposable;
-        getChildLog(name: string): ILog;
-        name: string;
-        child(action: (lapse: ILapse) => void, message?: string): void;
-        sequence(action: (seq: ISequence) => void, message?: string): Rx.IDisposable;
-        onCompleted(action: () => void): Rx.IDisposable;
+    interface ISequenceItem {
+        message?: string;
+        start(cb?: () => void): any;
     }
 }
 declare module Sequenx {
-    interface ISequence extends ICompletable, Rx.IDisposable {
-        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
-        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
-        getChildLog(name: string): ILog;
-        name: string;
-        onCompleted(action: () => void): Rx.IDisposable;
-        do(action: (lapse?: ILapse) => void, message?: string): ISequence;
-        doMark(marker?: any): ISequence;
-        skipToMarker(marker: any, cancelCurrent: boolean): void;
-        skipToEnd(cancelCurrent?: boolean): void;
-        doWait(duration: number, message?: string): ISequence;
-        doWaitForDispose(message?: string): Rx.IDisposable;
-        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): ISequence;
-        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): ISequence;
-        doWaitFor(completable: ICompletable, message?: string): ISequence;
-        doParallel(action: (parallel: IParallel) => void, message?: string): ISequence;
-        doDispose(disposable: Rx.IDisposable, message?: string): ISequence;
-        doSequence(action: (sequence: ISequence) => void, message?: string): ISequence;
+    class CallbackItem implements ISequenceItem {
+        action: (done?: () => void) => void;
+        message: string;
+        constructor(action: (done?: () => void) => void, message?: string);
+        start(cb: () => void): void;
+        toString(): string;
     }
 }
 declare module Sequenx {
-    interface IParallel extends ISequence {
+    class MarkItem implements ISequenceItem {
+        marker: any;
+        message: string;
+        private _callback;
+        constructor(marker: any, message?: string);
+        start(cb: () => void): void;
+        toString(): string;
     }
 }
 declare module Sequenx {
-    class Lapse implements ILapse {
-        private _isStarted;
-        private _isDisposed;
-        private _isCompleted;
-        private _refCountDisposable;
-        private _completedSubject;
+    interface Sequence extends ISequenceItem, IDisposable {
+        doDispose(disposable: Rx.IDisposable, message?: string): Sequence;
+        do(action: (done?: () => void) => void, message?: string): Sequence;
+        doWait(duration: number, message?: string): Sequence;
+        doWaitForDispose(duration: number, message?: string): IDisposable;
+        doMark(marker: any): Sequence;
+        skipToMarker(marker: any): void;
+        skipToEnd(): void;
+        skip(predicate: (item: ISequenceItem) => Boolean): void;
+        skipTo(predicate: (item: ISequenceItem) => boolean): void;
+    }
+    class Sequence implements Sequence {
         private _log;
-        completed: Rx.Observable<any>;
-        name: string;
-        constructor(nameOrLog?: string | ILog);
-        getChildLog(name: string): ILog;
-        sustain(name?: string): Rx.IDisposable;
-        start(): void;
-        dispose(): void;
-        private lapseCompleted();
-        onCompleted(action: () => void): Rx.IDisposable;
-        sequence(action: (seq: ISequence) => void, message?: string): Rx.IDisposable;
-        child(action: (lapse: ILapse) => void, message?: string): void;
-        disposeOnComplete(disposable: Rx.IDisposable): void;
-    }
-}
-declare module Sequenx {
-    class Sequence implements ISequence {
-        protected _log: ILog;
-        private _lapseDisposables;
-        private _currentLapseDisposable;
         private _pendingExecution;
-        private _items;
-        private _completedSubject;
+        protected _items: Array<ISequenceItem>;
         private _isStarted;
         private _isDisposed;
         private _isCompleted;
         private _isExecuting;
-        completed: Rx.Observable<any>;
+        protected _cbComplete: () => void;
         name: string;
         constructor(nameOrLog?: string | ILog);
         getChildLog(name: string): ILog;
-        add(item: Item): void;
-        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
-        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
-        start(): void;
+        add(item: ISequenceItem): void;
+        start(cb: () => void): void;
         protected scheduleNext(): void;
         private executeNext(scheduler, state);
         protected onLastItemCompleted(): void;
         dispose(): void;
         private onSequenceComplete();
-        onCompleted(action: () => void): Rx.IDisposable;
-        do(action: (lapse?: ILapse) => void, message?: string): ISequence;
-        doMark(marker?: any): ISequence;
-        skipToMarker(marker: any, cancelCurrent?: boolean): void;
-        skipToEnd(cancelCurrent?: boolean): void;
-        doWait(duration: number, message?: string): ISequence;
-        doWaitForDispose(message?: string): Rx.IDisposable;
-        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): ISequence;
-        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): ISequence;
-        doWaitFor(completable: ICompletable, message?: string): ISequence;
-        doParallel(action: (parallel: IParallel) => void, message?: string): ISequence;
-        doDispose(disposable: Rx.IDisposable, message?: string): ISequence;
-        doSequence(action: (sequence: ISequence) => void, message?: string): ISequence;
-    }
-    class Item {
-        action: (lapse?: ILapse) => void;
-        message: string;
-        data: any;
-        constructor(action?: (lapse?: ILapse) => void, message?: string, data?: any);
-        toString(): string;
+        doParallel(action: (parallel: Parallel) => void, message?: string): Sequence;
+        doSequence(action: (sequence: Sequence) => void, message?: string): Sequence;
     }
 }
 declare module Sequenx {
-    class Parallel extends Sequence implements IParallel {
-        private _lapse;
-        constructor(lapse: ILapse);
+    interface Parallel {
+    }
+    class Parallel extends Sequence implements Parallel, ISequenceItem {
+        message: string;
+        constructor();
+        scheduleNext(): void;
+        skip(predicate: (item: ISequenceItem) => boolean): void;
+        skipTo(predicate: (item: ISequenceItem) => boolean): void;
+    }
+}
+declare module Sequenx {
+    interface ILapse extends Rx.IDisposable {
+        sustain(name?: string): IDisposable;
+        getChildLog(name: string): ILog;
+        name: string;
+        child(action: (lapse: ILapse) => void, message?: string): void;
+        sequence(action: (seq: Sequence) => void, message?: string): Sequence;
+    }
+}
+declare module Sequenx {
+    class Lapse implements ILapse, ISequenceItem {
+        private _log;
+        private _isStarted;
+        private _isDisposed;
+        private _isCompleted;
+        private _refCountDisposable;
+        private _completed;
         completed: Rx.Observable<any>;
         name: string;
+        constructor(nameOrLog?: string | ILog);
         getChildLog(name: string): ILog;
-        add(item: Item): void;
-        skip(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
-        skipTo(predicate: (item: Item) => boolean, cancelCurrent: boolean): void;
+        sustain(name?: string): Rx.IDisposable;
+        start(cb: () => void): void;
+        dispose(): void;
+        private lapseCompleted();
+        sequence(action: (seq: Sequence) => void, message?: string): Sequence;
+        child(action: (lapse: ILapse) => void, message?: string): void;
+    }
+}
+declare module Sequenx {
+    interface Sequence {
+        doLapse(action: (lapse: Lapse) => void, message?: string): any;
+    }
+}
+declare module Sequenx {
+    interface Sequence {
+        doPromise(action: Promise<any> | (() => Promise<any>)): any;
+        startPromise(): Promise<any>;
     }
 }
