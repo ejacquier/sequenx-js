@@ -107,7 +107,6 @@ var Sequenx;
             }
             catch (error) {
                 this._isExecuting = false;
-                this.dispose();
                 throw error;
             }
         };

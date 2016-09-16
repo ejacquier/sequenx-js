@@ -105,7 +105,7 @@ module Sequenx
             catch (error)
             {
                 this._isExecuting = false;
-                this.dispose();
+                //this.dispose();
                 throw error;
             }
         }
