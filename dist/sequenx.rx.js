@@ -5,147 +5,6 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var Sequenx;
 (function (Sequenx) {
-    var Disposable = (function () {
-        function Disposable(action) {
-            this.action = action;
-            this._isDisposed = false;
-        }
-        Disposable.create = function (action) {
-            return new Disposable(action);
-        };
-        Object.defineProperty(Disposable.prototype, "isDisposed", {
-            get: function () {
-                return this._isDisposed;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Disposable.prototype.dispose = function () {
-            !this._isDisposed && this.action && this.action();
-            this._isDisposed = true;
-        };
-        Disposable.empty = new Disposable();
-        return Disposable;
-    }());
-    Sequenx.Disposable = Disposable;
-    var RefCountDisposable = (function (_super) {
-        __extends(RefCountDisposable, _super);
-        function RefCountDisposable(disposable) {
-            var _this = this;
-            _super.call(this, function () { return _this._self.dispose(); });
-            this.disposable = disposable;
-            this._count = 0;
-            this._self = this.getDisposable();
-        }
-        RefCountDisposable.prototype.getDisposable = function () {
-            var _this = this;
-            this._count++;
-            return this.isDisposed ? Disposable.empty : Disposable.create(function () {
-                _this._count--;
-                if (_this._count <= 0)
-                    _this.disposable.dispose();
-            });
-        };
-        return RefCountDisposable;
-    }(Disposable));
-    Sequenx.RefCountDisposable = RefCountDisposable;
-})(Sequenx || (Sequenx = {}));
-var Sequenx;
-(function (Sequenx) {
-    var Log = (function () {
-        function Log(name, parent) {
-            this._parent = parent;
-            this._name = name != null ? name : "";
-            this._id = Log.s_nextId++;
-            if (Log.isEnabled)
-                console.log(this.fullName + Log.StartSuffix);
-        }
-        Object.defineProperty(Log.prototype, "name", {
-            get: function () {
-                return this._name;
-            },
-            set: function (value) { },
-            enumerable: true,
-            configurable: true
-        });
-        Log.prototype.toString = function () {
-            return this.fullName;
-        };
-        Log.prototype.dispose = function () {
-            if (this._isDisposed)
-                return;
-            if (Log.isEnabled)
-                console.log(this.fullName + Log.EndSuffix);
-            this._isDisposed = true;
-        };
-        Log.prototype.getChild = function (name) {
-            return new Log(name, this);
-        };
-        Log.prototype.info = function (message) {
-            var params = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                params[_i - 1] = arguments[_i];
-            }
-            if (Log.isEnabled)
-                console.log(this.format(message, params));
-        };
-        Log.prototype.warning = function (message) {
-            var params = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                params[_i - 1] = arguments[_i];
-            }
-            console.warn(this.format(message, params));
-        };
-        Log.prototype.error = function (message) {
-            var params = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                params[_i - 1] = arguments[_i];
-            }
-            console.error(this.format(message, params));
-        };
-        Object.defineProperty(Log.prototype, "fullName", {
-            get: function () {
-                if (this._fullName == null) {
-                    if (this._parent != null)
-                        this._fullName = this._parent.fullName + Log.PathSeparator + this.getNameWithId();
-                    else
-                        this._fullName = this.getNameWithId();
-                }
-                return this._fullName;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Log.prototype.getNameWithId = function () {
-            return "(" + this._id + ") " + this._name;
-        };
-        Log.prototype.format = function (message, params) {
-            if (message && params != null && params.length > 0)
-                message = this.strFormat(message, params);
-            return this.fullName + Log.MessageSeparator + message;
-        };
-        Log.prototype.strFormat = function (str) {
-            var params = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                params[_i - 1] = arguments[_i];
-            }
-            var args = params;
-            return str.replace(/{(\d+)}/g, function (match, number) {
-                return typeof args[number] != 'undefined' ? args[number] : match;
-            });
-        };
-        Log.PathSeparator = "     ";
-        Log.MessageSeparator = "     ";
-        Log.StartSuffix = " [START]";
-        Log.EndSuffix = " [END]";
-        Log.s_nextId = 1;
-        Log.isEnabled = true;
-        return Log;
-    }());
-    Sequenx.Log = Log;
-})(Sequenx || (Sequenx = {}));
-var Sequenx;
-(function (Sequenx) {
     var CallbackItem = (function () {
         function CallbackItem(action, message) {
             this.action = action;
@@ -361,6 +220,53 @@ var Sequenx;
 })(Sequenx || (Sequenx = {}));
 var Sequenx;
 (function (Sequenx) {
+    var Disposable = (function () {
+        function Disposable(action) {
+            this.action = action;
+            this._isDisposed = false;
+        }
+        Disposable.create = function (action) {
+            return new Disposable(action);
+        };
+        Object.defineProperty(Disposable.prototype, "isDisposed", {
+            get: function () {
+                return this._isDisposed;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Disposable.prototype.dispose = function () {
+            !this._isDisposed && this.action && this.action();
+            this._isDisposed = true;
+        };
+        Disposable.empty = new Disposable();
+        return Disposable;
+    }());
+    Sequenx.Disposable = Disposable;
+    var RefCountDisposable = (function (_super) {
+        __extends(RefCountDisposable, _super);
+        function RefCountDisposable(disposable) {
+            var _this = this;
+            _super.call(this, function () { return _this._self.dispose(); });
+            this.disposable = disposable;
+            this._count = 0;
+            this._self = this.getDisposable();
+        }
+        RefCountDisposable.prototype.getDisposable = function () {
+            var _this = this;
+            this._count++;
+            return this.isDisposed ? Disposable.empty : Disposable.create(function () {
+                _this._count--;
+                if (_this._count <= 0)
+                    _this.disposable.dispose();
+            });
+        };
+        return RefCountDisposable;
+    }(Disposable));
+    Sequenx.RefCountDisposable = RefCountDisposable;
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
     var Lapse = (function () {
         function Lapse(nameOrLog) {
             var _this = this;
@@ -442,7 +348,102 @@ var Sequenx;
             action(lapse);
             lapse.start(done);
         });
+        return this;
     };
+})(Sequenx || (Sequenx = {}));
+var Sequenx;
+(function (Sequenx) {
+    var Log = (function () {
+        function Log(name, parent) {
+            this._parent = parent;
+            this._name = name != null ? name : "";
+            this._id = Log.s_nextId++;
+            if (Log.isEnabled)
+                console.log(this.fullName + Log.StartSuffix);
+        }
+        Object.defineProperty(Log.prototype, "name", {
+            get: function () {
+                return this._name;
+            },
+            set: function (value) { },
+            enumerable: true,
+            configurable: true
+        });
+        Log.prototype.toString = function () {
+            return this.fullName;
+        };
+        Log.prototype.dispose = function () {
+            if (this._isDisposed)
+                return;
+            if (Log.isEnabled)
+                console.log(this.fullName + Log.EndSuffix);
+            this._isDisposed = true;
+        };
+        Log.prototype.getChild = function (name) {
+            return new Log(name, this);
+        };
+        Log.prototype.info = function (message) {
+            var params = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                params[_i - 1] = arguments[_i];
+            }
+            if (Log.isEnabled)
+                console.log(this.format(message, params));
+        };
+        Log.prototype.warning = function (message) {
+            var params = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                params[_i - 1] = arguments[_i];
+            }
+            console.warn(this.format(message, params));
+        };
+        Log.prototype.error = function (message) {
+            var params = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                params[_i - 1] = arguments[_i];
+            }
+            console.error(this.format(message, params));
+        };
+        Object.defineProperty(Log.prototype, "fullName", {
+            get: function () {
+                if (this._fullName == null) {
+                    if (this._parent != null)
+                        this._fullName = this._parent.fullName + Log.PathSeparator + this.getNameWithId();
+                    else
+                        this._fullName = this.getNameWithId();
+                }
+                return this._fullName;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Log.prototype.getNameWithId = function () {
+            return "(" + this._id + ") " + this._name;
+        };
+        Log.prototype.format = function (message, params) {
+            if (message && params != null && params.length > 0)
+                message = this.strFormat(message, params);
+            return this.fullName + Log.MessageSeparator + message;
+        };
+        Log.prototype.strFormat = function (str) {
+            var params = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                params[_i - 1] = arguments[_i];
+            }
+            var args = params;
+            return str.replace(/{(\d+)}/g, function (match, number) {
+                return typeof args[number] != 'undefined' ? args[number] : match;
+            });
+        };
+        Log.PathSeparator = "     ";
+        Log.MessageSeparator = "     ";
+        Log.StartSuffix = " [START]";
+        Log.EndSuffix = " [END]";
+        Log.s_nextId = 1;
+        Log.isEnabled = true;
+        return Log;
+    }());
+    Sequenx.Log = Log;
 })(Sequenx || (Sequenx = {}));
 var Sequenx;
 (function (Sequenx) {
@@ -451,10 +452,31 @@ var Sequenx;
             this.do(function (done) { return action.then(function (v) { return done(); }); });
         else
             this.do(function (done) { return action().then(function (v) { return done(); }); });
+        return this;
     };
     Sequenx.Sequence.prototype.startPromise = function () {
         var _this = this;
         return new Promise(function (resolve) { return _this.start(resolve); });
     };
 })(Sequenx || (Sequenx = {}));
-//# sourceMappingURL=sequenx.js.map
+if (typeof module !== 'undefined' && module.exports)
+    this["Rx"] = require("rx-lite");
+var Sequenx;
+(function (Sequenx) {
+    Sequenx.Sequence.prototype.doWaitForCompleted = function (observable, message) {
+        this.do(function (done) { return observable.subscribeOnCompleted(done); }, message ? message : "WaitForCompleted");
+        return this;
+    };
+    Sequenx.Sequence.prototype.doWaitForNext = function (observable, message) {
+        this.do(function (done) { return observable.subscribeOnNext(done); }, message ? message : "WaitForNext");
+        return this;
+    };
+    Sequenx.Sequence.prototype.startRx = function () {
+        var _this = this;
+        return Rx.Observable.create(function (o) { return _this.start(function () { return o.onCompleted(); }); });
+    };
+})(Sequenx || (Sequenx = {}));
+
+if (typeof module !== 'undefined' && module.exports)
+    module.exports = Sequenx;
+

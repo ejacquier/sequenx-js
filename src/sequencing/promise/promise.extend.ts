@@ -2,7 +2,7 @@ module Sequenx
 {
     export interface Sequence
     {
-        doPromise(action: Promise<any> | (() => Promise<any>));
+        doPromise(action: Promise<any> | (() => Promise<any>)): Sequence;
         startPromise(): Promise<any>;
     }
 
@@ -12,6 +12,7 @@ module Sequenx
             this.do(done => action.then(v => done()));
         else
             this.do(done => action().then(v => done()));
+        return this;
     };
 
     Sequence.prototype.startPromise = function ()

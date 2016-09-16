@@ -1,61 +1,4 @@
 declare module Sequenx {
-    interface IDisposable {
-        dispose(): void;
-    }
-    class Disposable implements IDisposable {
-        action: () => void;
-        static empty: Disposable;
-        static create(action: () => void): Disposable;
-        private _isDisposed;
-        constructor(action?: () => void);
-        isDisposed: boolean;
-        dispose(): void;
-    }
-    class RefCountDisposable extends Disposable {
-        private disposable;
-        private _count;
-        private _self;
-        constructor(disposable: Disposable);
-        getDisposable(): IDisposable;
-    }
-}
-declare module Sequenx {
-    interface ILog extends IDisposable {
-        getChild(name: string): ILog;
-        info(message: string, ...params: any[]): void;
-        warning(message: string, ...params: any[]): void;
-        error(message: string, ...params: any[]): void;
-        name: string;
-    }
-}
-declare module Sequenx {
-    class Log implements ILog {
-        private static PathSeparator;
-        private static MessageSeparator;
-        private static StartSuffix;
-        private static EndSuffix;
-        private static s_nextId;
-        static isEnabled: boolean;
-        private _parent;
-        private _name;
-        private _id;
-        private _fullName;
-        private _isDisposed;
-        name: string;
-        constructor(name: string, parent?: Log);
-        toString(): string;
-        dispose(): void;
-        getChild(name: string): ILog;
-        info(message: string, ...params: any[]): void;
-        warning(message: string, ...params: any[]): void;
-        error(message: string, ...params: any[]): void;
-        fullName: string;
-        private getNameWithId();
-        private format(message, params);
-        private strFormat(str, ...params);
-    }
-}
-declare module Sequenx {
     interface ICompletable {
         onCompleted(action: () => void): any;
     }
@@ -132,6 +75,27 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
+    interface IDisposable {
+        dispose(): void;
+    }
+    class Disposable implements IDisposable {
+        action: () => void;
+        static empty: Disposable;
+        static create(action: () => void): Disposable;
+        private _isDisposed;
+        constructor(action?: () => void);
+        isDisposed: boolean;
+        dispose(): void;
+    }
+    class RefCountDisposable extends Disposable {
+        private disposable;
+        private _count;
+        private _self;
+        constructor(disposable: Disposable);
+        getDisposable(): IDisposable;
+    }
+}
+declare module Sequenx {
     interface ILapse extends IDisposable {
         sustain(name?: string): IDisposable;
         getChildLog(name: string): ILog;
@@ -161,12 +125,48 @@ declare module Sequenx {
 }
 declare module Sequenx {
     interface Sequence {
-        doLapse(action: (lapse: Lapse) => void, message?: string): any;
+        doLapse(action: (lapse: Lapse) => void, message?: string): Sequence;
+    }
+}
+declare module Sequenx {
+    interface ILog extends IDisposable {
+        getChild(name: string): ILog;
+        info(message: string, ...params: any[]): void;
+        warning(message: string, ...params: any[]): void;
+        error(message: string, ...params: any[]): void;
+        name: string;
+    }
+}
+declare module Sequenx {
+    class Log implements ILog {
+        private static PathSeparator;
+        private static MessageSeparator;
+        private static StartSuffix;
+        private static EndSuffix;
+        private static s_nextId;
+        static isEnabled: boolean;
+        private _parent;
+        private _name;
+        private _id;
+        private _fullName;
+        private _isDisposed;
+        name: string;
+        constructor(name: string, parent?: Log);
+        toString(): string;
+        dispose(): void;
+        getChild(name: string): ILog;
+        info(message: string, ...params: any[]): void;
+        warning(message: string, ...params: any[]): void;
+        error(message: string, ...params: any[]): void;
+        fullName: string;
+        private getNameWithId();
+        private format(message, params);
+        private strFormat(str, ...params);
     }
 }
 declare module Sequenx {
     interface Sequence {
-        doPromise(action: Promise<any> | (() => Promise<any>)): any;
+        doPromise(action: Promise<any> | (() => Promise<any>)): Sequence;
         startPromise(): Promise<any>;
     }
 }

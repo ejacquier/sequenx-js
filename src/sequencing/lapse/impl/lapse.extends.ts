@@ -2,7 +2,7 @@ module Sequenx
 {
     export interface Sequence
     {
-        doLapse(action: (lapse: Lapse) => void, message?: string)
+        doLapse(action: (lapse: Lapse) => void, message?: string):Sequence
     }
 
     Sequence.prototype.doLapse = function (action: (lapse: Lapse) => void, message: string = "Lapse")
@@ -13,5 +13,6 @@ module Sequenx
             action(lapse);
             lapse.start(done);
         });
+        return this;
     };
 }
