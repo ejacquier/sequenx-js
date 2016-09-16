@@ -1,7 +1,7 @@
 
 module Sequenx
 {
-    export interface ILapse extends Rx.IDisposable
+    export interface ILapse extends IDisposable
     {
         sustain(name?: string): IDisposable;
         getChildLog(name: string): ILog;

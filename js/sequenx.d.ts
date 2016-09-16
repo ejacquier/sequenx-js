@@ -1,4 +1,3 @@
-/// <reference path="../typings/rx.d.ts" />
 declare module Sequenx {
     interface IDisposable {
         dispose(): void;
@@ -21,7 +20,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    interface ILog extends Rx.IDisposable {
+    interface ILog extends IDisposable {
         getChild(name: string): ILog;
         info(message: string, ...params: any[]): void;
         warning(message: string, ...params: any[]): void;
@@ -88,7 +87,7 @@ declare module Sequenx {
 }
 declare module Sequenx {
     interface Sequence extends ISequenceItem, IDisposable {
-        doDispose(disposable: Rx.IDisposable, message?: string): Sequence;
+        doDispose(disposable: IDisposable, message?: string): Sequence;
         do(action: (done?: () => void) => void, message?: string): Sequence;
         doWait(duration: number, message?: string): Sequence;
         doWaitForDispose(duration: number, message?: string): IDisposable;
@@ -113,7 +112,7 @@ declare module Sequenx {
         add(item: ISequenceItem): void;
         start(cb: () => void): void;
         protected scheduleNext(): void;
-        private executeNext(scheduler, state);
+        private executeNext();
         protected onLastItemCompleted(): void;
         dispose(): void;
         private onSequenceComplete();
@@ -133,7 +132,7 @@ declare module Sequenx {
     }
 }
 declare module Sequenx {
-    interface ILapse extends Rx.IDisposable {
+    interface ILapse extends IDisposable {
         sustain(name?: string): IDisposable;
         getChildLog(name: string): ILog;
         name: string;
@@ -149,11 +148,10 @@ declare module Sequenx {
         private _isCompleted;
         private _refCountDisposable;
         private _completed;
-        completed: Rx.Observable<any>;
         name: string;
         constructor(nameOrLog?: string | ILog);
         getChildLog(name: string): ILog;
-        sustain(name?: string): Rx.IDisposable;
+        sustain(name?: string): IDisposable;
         start(cb: () => void): void;
         dispose(): void;
         private lapseCompleted();

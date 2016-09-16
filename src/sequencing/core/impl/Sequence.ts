@@ -3,7 +3,7 @@ module Sequenx
     export interface Sequence extends ISequenceItem, IDisposable
     {
         // { do
-        doDispose(disposable: Rx.IDisposable, message?: string): Sequence
+        doDispose(disposable: IDisposable, message?: string): Sequence
         do(action: (done?: () => void) => void, message?: string): Sequence
         doWait(duration: number, message?: string): Sequence
         doWaitForDispose(duration: number, message?: string): IDisposable
@@ -75,10 +75,10 @@ module Sequenx
         protected scheduleNext(): void
         {
             this._pendingExecution.dispose();
-            this._pendingExecution = Rx.Scheduler.currentThread.schedule("item", this.executeNext.bind(this));
+            this.executeNext();
         }
 
-        private executeNext(scheduler: Rx.IScheduler, state: string): Rx.IDisposable
+        private executeNext()
         {
             if (this._isExecuting || this._isCompleted || this._isDisposed)
                 return;
@@ -140,7 +140,7 @@ module Sequenx
 
         // { do
 
-        public doDispose(disposable: Rx.IDisposable, message?: string): Sequence
+        public doDispose(disposable: IDisposable, message?: string): Sequence
         {
             this.do(() => disposable.dispose(), message ? message : "Dispose");
             return this;

@@ -11,11 +11,6 @@ module Sequenx
         private _refCountDisposable: RefCountDisposable;
         private _completed: () => void;
 
-        set completed(value: Rx.Observable<any>)
-        {
-
-        }
-
         get name(): string
         {
             return this._log.name;
@@ -37,10 +32,10 @@ module Sequenx
             return this._log.getChild(name);
         }
 
-        public sustain(name?: string): Rx.IDisposable
+        public sustain(name?: string): IDisposable
         {
             if (this._isCompleted || this._isDisposed)
-                return Rx.Disposable.empty;
+                return Disposable.empty;
 
             if (name && Log.isEnabled)
                 this._log.info("Sustain " + name);

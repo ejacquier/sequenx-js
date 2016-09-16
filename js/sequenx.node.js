@@ -228,9 +228,9 @@ var Sequenx;
         };
         Sequence.prototype.scheduleNext = function () {
             this._pendingExecution.dispose();
-            this._pendingExecution = Rx.Scheduler.currentThread.schedule("item", this.executeNext.bind(this));
+            this.executeNext();
         };
-        Sequence.prototype.executeNext = function (scheduler, state) {
+        Sequence.prototype.executeNext = function () {
             var _this = this;
             if (this._isExecuting || this._isCompleted || this._isDisposed)
                 return;
@@ -372,12 +372,6 @@ var Sequenx;
                 this._log = nameOrLog;
             this._refCountDisposable = new Sequenx.RefCountDisposable(Sequenx.Disposable.create(function () { return _this.lapseCompleted(); }));
         }
-        Object.defineProperty(Lapse.prototype, "completed", {
-            set: function (value) {
-            },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Lapse.prototype, "name", {
             get: function () {
                 return this._log.name;
@@ -390,7 +384,7 @@ var Sequenx;
         };
         Lapse.prototype.sustain = function (name) {
             if (this._isCompleted || this._isDisposed)
-                return Rx.Disposable.empty;
+                return Sequenx.Disposable.empty;
             if (name && Sequenx.Log.isEnabled)
                 this._log.info("Sustain " + name);
             return this._refCountDisposable.getDisposable();
@@ -463,7 +457,6 @@ var Sequenx;
         return new Promise(function (resolve) { return _this.start(resolve); });
     };
 })(Sequenx || (Sequenx = {}));
-var Rx = require("rx-lite");
 module.exports = Sequenx;
 
 
