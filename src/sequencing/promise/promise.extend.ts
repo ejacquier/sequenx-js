@@ -2,16 +2,13 @@ module Sequenx
 {
     export interface Sequence
     {
-        doPromise(action: Promise<any> | (() => Promise<any>)): Sequence;
+        doPromise(action: () => Promise<any>): Sequence;
         startPromise(): Promise<any>;
     }
 
-    Sequence.prototype.doPromise = function (action: Promise<any> | (() => Promise<any>))
+    Sequence.prototype.doPromise = function (action: () => Promise<any>)
     {
-        if (action instanceof Promise)
-            this.do(done => action.then(v => done()));
-        else
-            this.do(done => action().then(v => done()));
+        this.do(done => action().then(v => done()));
         return this;
     };
 
@@ -19,4 +16,16 @@ module Sequenx
     {
         return new Promise(resolve => this.start(resolve));
     };
+
+}
+
+interface Promise<T> extends Sequenx.ISequenceItem
+{
+    start(cb?: () => void);
+}
+
+
+Promise.prototype.start = function (cb?: () => void)
+{
+    this.then(cb);
 }

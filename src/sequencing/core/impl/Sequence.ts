@@ -15,6 +15,7 @@ module Sequenx
         skip(predicate: (item: ISequenceItem) => Boolean): void
         skipTo(predicate: (item: ISequenceItem) => boolean): void
         //}
+        onCompleted(cb: () => void);
     }
 
     export class Sequence implements Sequence
@@ -34,7 +35,7 @@ module Sequenx
             return this._log.name;
         }
 
-        constructor(nameOrLog?: string | ILog)
+        constructor(nameOrLog?: string | ILog, private autoStart = false)
         {
             if (!nameOrLog)
                 this._log = new Log("");
@@ -42,6 +43,8 @@ module Sequenx
                 this._log = new Log(nameOrLog);
             else
                 this._log = nameOrLog;
+            if (autoStart)
+                setTimeout(this.start.bind(this), 0);
         }
 
         public getChildLog(name: string): ILog
@@ -62,13 +65,21 @@ module Sequenx
             this._items.push(item);
         }
 
-        public start(cb: () => void)
+        onCompleted(cb: () => void)
+        {
+            this._cbComplete = cb;
+        }
+
+        public start(cb?: () => void)
         {
             if (this._isStarted || this._isDisposed)
                 return;
 
+            if (this._isCompleted && cb)
+                cb();
+
             this._isStarted = true;
-            this._cbComplete = cb;
+            this._cbComplete = cb || this._cbComplete;
             this.scheduleNext();
         }
 
@@ -184,8 +195,7 @@ module Sequenx
         public doSequence(action: (sequence: Sequence) => void, message?: string): Sequence
         {
             message = message ? message : "Sequence";
-            const sequence = new Sequence();
-            //sequence.message = message;
+            const sequence = new Sequence(message);
             action(sequence);
             this.add(sequence);
             return this;

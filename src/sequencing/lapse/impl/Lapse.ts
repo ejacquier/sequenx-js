@@ -4,7 +4,7 @@ module Sequenx
 {
     export class Lapse implements ILapse, ISequenceItem
     {
-        private _log:ILog;
+        private _log: ILog;
         private _isStarted: boolean;
         private _isDisposed: boolean;
         private _isCompleted: boolean;
@@ -16,7 +16,7 @@ module Sequenx
             return this._log.name;
         }
 
-        constructor(nameOrLog?: string | ILog)
+        constructor(nameOrLog?: string | ILog, private autoStart = false)
         {
             if (!nameOrLog)
                 this._log = new Log("");
@@ -25,6 +25,8 @@ module Sequenx
             else
                 this._log = nameOrLog as ILog;
             this._refCountDisposable = new RefCountDisposable(Disposable.create(() => this.lapseCompleted()));
+            if (autoStart)
+                setTimeout(() => this.start(), 0);
         }
 
         public getChildLog(name: string): ILog
@@ -43,13 +45,18 @@ module Sequenx
             return this._refCountDisposable.getDisposable();
         }
 
-        public start(cb: () => void): void
+        public onCompleted(cb: () => void)
+        {
+            this._completed = cb;
+        }
+
+        public start(cb?: () => void): void
         {
             if (this._isStarted || this._isCompleted || this._isDisposed)
                 return;
 
             this._isStarted = true;
-            this._completed = cb;
+            this._completed = cb || this._completed;
             this._refCountDisposable.dispose();
         }
 

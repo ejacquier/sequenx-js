@@ -10,9 +10,8 @@ module Sequenx
 
     export interface Sequence
     {
-        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): Sequence
-        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void
-        startRx(): Rx.Observable<any>;
+        doWaitForCompleted<T>(observable: Rx.Observable<T>, message?: string): Sequence;
+        doWaitForNext<T>(observable: Rx.Observable<T>, message?: string): void;
     }
 
     Sequence.prototype.doWaitForCompleted = function (observable: Rx.Observable<any>, message?: string)
@@ -25,10 +24,5 @@ module Sequenx
     {
         this.do(done => observable.subscribeOnNext(done), message ? message : "WaitForNext");
         return this;
-    };
-
-    Sequence.prototype.startRx = function ()
-    {
-        return Rx.Observable.create(o => this.start(() => o.onCompleted()));
     };
 }

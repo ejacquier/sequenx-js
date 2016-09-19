@@ -11,9 +11,9 @@ module Sequenx
     {
         message: string;
 
-        constructor()
+        constructor(nameOrLog?: string | ILog, autoStart = false)
         {
-            super();
+            super(nameOrLog, autoStart);
         }
 
         public scheduleNext(): void

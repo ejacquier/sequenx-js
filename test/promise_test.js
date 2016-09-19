@@ -18,7 +18,7 @@ var customLog = {
 describe("Sequence Promise", function() {
     it("should be able to pass promise to sequence (doPromise)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
-        seq.doPromise(new Promise(resolve => resolve()));
+        seq.add(new Promise(resolve => resolve()));
         seq.start(done);
     });
 
