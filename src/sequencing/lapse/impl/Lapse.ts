@@ -1,35 +1,22 @@
-/// <reference path="../ICompletable.ts"/>
 /// <reference path="../ILapse.ts"/>
-/// <reference path="../../logging/ILog.ts"/>
-/// <reference path="../../logging/Log.ts"/>
 
 module Sequenx
 {
-    export class Lapse implements ILapse
+    export class Lapse implements ILapse, ISequenceItem
     {
+        private _log: ILog;
         private _isStarted: boolean;
         private _isDisposed: boolean;
         private _isCompleted: boolean;
-        private _refCountDisposable: Rx.RefCountDisposable;
-        private _completedSubject: Rx.Subject<string> = new Rx.Subject<string>();
-        private _log: ILog;
-
-        get completed(): Rx.Observable<any>
-        {
-            return this._completedSubject;
-        }
-
-        set completed(value: Rx.Observable<any>)
-        {
-
-        }
+        private _refCountDisposable: RefCountDisposable;
+        private _completed: () => void;
 
         get name(): string
         {
             return this._log.name;
         }
 
-        constructor(nameOrLog?: string | ILog)
+        constructor(nameOrLog?: string | ILog, private autoStart = false)
         {
             if (!nameOrLog)
                 this._log = new Log("");
@@ -37,7 +24,9 @@ module Sequenx
                 this._log = new Log(nameOrLog);
             else
                 this._log = nameOrLog as ILog;
-            this._refCountDisposable = new Rx.RefCountDisposable(Rx.Disposable.create(() => this.lapseCompleted()));
+            this._refCountDisposable = new RefCountDisposable(Disposable.create(() => this.lapseCompleted()));
+            if (autoStart)
+                setTimeout(() => this.start(), 0);
         }
 
         public getChildLog(name: string): ILog
@@ -45,10 +34,10 @@ module Sequenx
             return this._log.getChild(name);
         }
 
-        public sustain(name?: string): Rx.IDisposable
+        public sustain(name?: string): IDisposable
         {
             if (this._isCompleted || this._isDisposed)
-                return Rx.Disposable.empty;
+                return Disposable.empty;
 
             if (name && Log.isEnabled)
                 this._log.info("Sustain " + name);
@@ -56,12 +45,18 @@ module Sequenx
             return this._refCountDisposable.getDisposable();
         }
 
-        public start(): void
+        public onCompleted(cb: () => void)
+        {
+            this._completed = cb;
+        }
+
+        public start(cb?: () => void): void
         {
             if (this._isStarted || this._isCompleted || this._isDisposed)
                 return;
 
             this._isStarted = true;
+            this._completed = cb || this._completed;
             this._refCountDisposable.dispose();
         }
 
@@ -87,27 +82,19 @@ module Sequenx
             this._isDisposed = true;
             this._log.dispose();
 
-            this._completedSubject.onCompleted();
-        }
-
-        //ICompletableExtensions
-
-        public onCompleted(action: () => void): Rx.IDisposable
-        {
-            return this.completed.subscribeOnCompleted(action);
+            this._completed && this._completed();
         }
 
         //ILapseExtensions
 
-        public sequence(action: (seq: ISequence) => void, message?: string): Rx.IDisposable
+        public sequence(action: (seq: Sequence) => void, message?: string): Sequence
         {
             const sustain = this.sustain();
             const name = message ? message : 'Sequence';
             const log = this.getChildLog(name);
             const seq = new Sequence(log);
-            seq.onCompleted(() => sustain.dispose());
             action(seq);
-            seq.start();
+            seq.start(() => sustain.dispose());
 
             return seq;
         }
@@ -118,14 +105,8 @@ module Sequenx
             const name = message ? message : 'Child';
             const log = this.getChildLog(name);
             const child = new Lapse(log);
-            child.onCompleted(() => sustain.dispose());
             action(child);
-            child.start();
-        }
-
-        public disposeOnComplete(disposable: Rx.IDisposable): void
-        {
-            this.onCompleted(() => disposable.dispose());
+            child.start(() => sustain.dispose());
         }
     }
 }

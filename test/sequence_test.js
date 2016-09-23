@@ -2,7 +2,7 @@ var companion = require('companion');
 var sinon = require('sinon');
 var expect = require("chai").expect;
 var assert = require("chai").assert;
-var Sequenx = require('../js/sequenx.node.js');
+var Sequenx = require('../js/sequenx.js');
 
 // Mock
 var customLog = {
@@ -14,18 +14,10 @@ var customLog = {
     dispose: () => { }
 }
 
-function delayDispose(lapse, delay, action) {
-    if (delay === undefined)
-        delay = 50;
-    var disposable = lapse.sustain();
-    setTimeout(() => {
-        action && action();
-        disposable.dispose();
-    }, delay);
-}
+const DELAY = 50;
 
 // Test
-describe("Lapse", function() {
+describe("Sequence", function() {
 
     before(function() {
         Sequenx.Log.isEnabled = false;
@@ -49,39 +41,25 @@ describe("Lapse", function() {
         expect(seq).instanceof(Sequenx.Sequence);
     });
 
-
-    it("should be able to start a sequence with 1 action", function(done) {
+    it("should be able to do a simple action", function(done) {
         var seq = new Sequenx.Sequence(customLog);
-        var spy = sinon.spy(lapse => { });
+        var spy = sinon.spy(() => { });
         seq.do(spy);
-        seq.onCompleted(() => {
+        seq.start(() => {
             expect(spy.calledOnce, "action not executed").to.be.true
             done();
         });
-        seq.start();
     });
 
     it("should not be able to run sequence twice", function(done) {
         var seq = new Sequenx.Sequence(customLog);
-        var spy = sinon.spy(lapse => { });
+        var spy = sinon.spy((done) => setTimeout(done, DELAY));
         seq.do(spy);
-        seq.onCompleted(() => {
-            expect(spy.calledOnce, "action not executed").to.be.true
+        seq.start(() => {
+            expect(spy.calledOnce, "start multiple time").to.be.true
             done();
         });
-        seq.start();
-        seq.start();
-    });
-
-    it("should be able to start a sequence with 1 action and wait complete", function(done) {
-        var seq = new Sequenx.Sequence(customLog);
-        var spy = sinon.spy(lapse => delayDispose(lapse));
-        seq.do(spy);
-        seq.onCompleted(() => {
-            expect(spy.calledOnce, "action not executed").to.be.true
-            done();
-        });
-        seq.start();
+        seq.start(() => { assert.fail(null, null, "start multiple time") });
     });
 
     it("should be able to start a sequence with 1 fail action", function() {
@@ -98,136 +76,151 @@ describe("Lapse", function() {
     });
 
 
-    it("should don't call complete since all lapse was complete", function(done) {
+    it("should don't call complete since done was call", function(done) {
         var seq = new Sequenx.Sequence(customLog);
-        seq.do(lapse => lapse.sustain());
-        seq.onCompleted(() => {
+        seq.do((done) => { });
+        seq.start(() => {
             assert.fail(null, null, "complete should not be call");
         });
-        seq.start();
         setTimeout(done, 500);
     });
 
     it("should be able to start a sequence with 2 action in order", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-            delayDispose(lapse);
-        });
-        seq.do(lapse => {
-            spy += "B";
-            delayDispose(lapse);
-        });
-        seq.onCompleted(() => {
-            expect(spy.length, "action not executed").to.equal(2);
-            expect(spy, "action not executed in order").to.equal("AB");
-            done();
-        });
-        seq.start();
+        seq
+            .do(() => spy += "A")
+            .do(() => spy += "B")
+            .start(() => {
+                expect(spy.length, "action not executed").to.equal(2);
+                expect(spy, "action not executed in order").to.equal("AB");
+                done();
+            });
     });
 
     it("should be able to start a sequence async", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-            delayDispose(lapse);
-        });
-        seq.do(lapse => {
-            spy += "C";
-            delayDispose(lapse);
-        });
-        seq.onCompleted(() => {
-            expect(spy, "action was not async").not.to.equal("ACB");
-            expect(spy, "action not executed in order").to.equal("ABC");
-            done();
-        });
-        seq.start();
+        seq
+            .do(done => {
+                spy += "A";
+                setTimeout(done, DELAY);
+            })
+            .do(lapse => {
+                spy += "C";
+                setTimeout(done, DELAY);
+            })
+            .start(() => {
+                expect(spy, "action was not async").not.to.equal("ACB");
+                expect(spy, "action not executed in order").to.equal("ABC");
+                done();
+            });
         spy += "B";
     });
 
 
-    it("should be able skip action and go to end (skipToEnd)", function(done) {
+    it("should be able to dispose sequence before complete (dispose)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-            delayDispose(lapse);
-            seq.skipToEnd(); //skip other action;
-        });
-        seq.do(lapse => {
-            spy += "B";
-            delayDispose(lapse);
-        });
-        seq.onCompleted(() => {
+        seq
+            .do(done => {
+                spy += "A";
+                setTimeout(done, DELAY);
+            })
+            .do(done => {
+                spy += "B";
+                setTimeout(done, DELAY);
+            })
+        seq.start(() => {
             expect(spy, "action not skip").to.equal("A");
             done();
         });
-        seq.start();
+        seq.dispose();
+    });
+
+    it("should be able to dispose sequence before complete (dispose)", function(done) {
+        var seq = new Sequenx.Sequence(customLog);
+        var spy = "";
+        seq
+            .do(done => {
+                spy += "A";
+                setTimeout(done, DELAY);
+            })
+        seq.start(() => {
+            expect(spy, "action not skip").to.equal("A");
+            done();
+        });
+        seq.dispose();
+    });
+
+    it("should be able skip action and go to end (skipToEnd)", function(done) {
+        var seq = new Sequenx.Sequence(customLog);
+        var spy = "";
+        seq
+            .do(done => {
+                spy += "A";
+                setTimeout(done, DELAY);
+                seq.skipToEnd(); //skip other action;
+            })
+            .do(done => {
+                spy += "B";
+                setTimeout(done, DELAY);
+            })
+            .start(() => {
+                expect(spy, "action not skip").to.equal("A");
+                done();
+            });
     });
 
     it("should be able to create and skip to the mark (doMark, skipToMarker)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        var mark = {};
-        seq.do(lapse => {
+        seq.do(done => {
             spy += "A";
-            delayDispose(lapse);
+            setTimeout(done, DELAY);
         });
-        seq.do(lapse => {
+        seq.do(done => {
             spy += "B";
-            delayDispose(lapse);
+            setTimeout(done, DELAY);
         });
-        seq.doMark(mark);
-        seq.do(lapse => {
+        seq.doMark("mark");
+        seq.do(done => {
             spy += "C";
-            delayDispose(lapse);
+            setTimeout(done, DELAY);
         });
-        seq.onCompleted(() => {
+        seq.start(() => {
             expect(spy, "action not skip").to.equal("AC");
             done();
         });
-        seq.start();
-        seq.skipToMarker(mark);
+        seq.skipToMarker("mark");
     });
 
 
     it("should be able to add delay between action (doWait)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-        });
-        seq.doWait(100);
-        seq.do(lapse => {
-            spy += "C";
-        });
-        seq.onCompleted(() => {
+        seq.do(() => spy += "A");
+        seq.doWait(DELAY);
+        seq.do(() => spy += "C");
+        seq.start(() => {
             expect(spy, "action was not async").not.to.equal("ACB");
             expect(spy, "action not executed in order").to.equal("ABC");
             done();
         });
-        seq.start();
         spy += "B";
     });
 
     it("should be able to wait to dispose a object (doWaitForDispose)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
-            spy += "A";
-        });
+        seq.do(() => spy += "A");
         var disposable = seq.doWaitForDispose();
-        seq.do(lapse => {
-            spy += "C";
-        });
-        seq.onCompleted(() => {
+        seq.do(() => spy += "C");
+        seq.start(() => {
             expect(spy, "action was not async").not.to.equal("ACB");
             expect(spy, "action not executed in order").to.equal("ABC");
             done();
         });
-        seq.start();
         spy += "B";
         disposable.dispose();
     });
@@ -236,15 +229,14 @@ describe("Lapse", function() {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
         seq.doParallel(parallel => {
-            parallel.do(l => delayDispose(l, 50, () => spy += "A"));
-            parallel.do(l => delayDispose(l, 150, () => spy += "C"));
-            parallel.do(l => delayDispose(l, 100, () => spy += "B"));
-        })
-        seq.onCompleted(() => {
+            parallel.do(done => setTimeout(() => { spy += "A"; done(); }, 50));
+            parallel.do(done => setTimeout(() => { spy += "C"; done(); }, 150));
+            parallel.do(done => setTimeout(() => { spy += "B"; done(); }, 100));
+        });
+        seq.start(() => {
             expect(spy, "seq is not parallel").to.equal("ABC");
             done();
         });
-        seq.start();
     });
 
 
@@ -259,11 +251,10 @@ describe("Lapse", function() {
 
         seq.doDispose(obj);
 
-        seq.onCompleted(() => {
+        seq.start(() => {
             expect(obj.dispose.calledOnce).to.be.true;
             done();
         });
-        seq.start();
     });
 
 
@@ -271,61 +262,48 @@ describe("Lapse", function() {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
         seq.doSequence(seq2 => {
-            seq2.do(l => delayDispose(l, 50, () => spy += "A"));
-            seq2.do(l => delayDispose(l, 150, () => spy += "C"));
-            seq2.do(l => delayDispose(l, 100, () => spy += "B"));
+            seq2.do(done => setTimeout(() => { spy += "A"; done(); }), 50);
+            seq2.do(done => setTimeout(() => { spy += "C"; done(); }), 150);
+            seq2.do(done => setTimeout(() => { spy += "B"; done(); }, 100));
         })
-        seq.onCompleted(() => {
+        seq.start(() => {
             expect(spy, "seq is not parallel").to.equal("ACB");
             done();
         });
-        seq.start();
     });
 
-    it("should be able dispose sequence and skipt action (dispose)", function(done) {
+    it("should be able dispose sequence and skip action (dispose)", function(done) {
         var seq = new Sequenx.Sequence(customLog);
         var spy = "";
-        seq.do(lapse => {
+        seq.do(done => {
             spy += "A";
-            delayDispose(lapse);
+            setTimeout(done, DELAY);
             seq.dispose(); //skip other action;
         });
-        seq.do(lapse => {
+        seq.do(done => {
             spy += "B";
-            delayDispose(lapse);
+            setTimeout(done, DELAY);
         });
-        seq.onCompleted(() => {
+        seq.start(() => {
             expect(spy, "action not skip").to.equal("A");
             done();
         });
-        seq.start();
     });
 
-    it("should be able to retrieve log name", function() {
-        var seq = new Sequenx.Sequence("seq");
-        expect(seq.name).to.equal("seq");
-    });
-
-    it("should be log error if try add other then Sequenx.Item", function() {
-        var seq = new Sequenx.Sequence(customLog);
-        sinon.spy(customLog, "error");
-        seq.add("error");
-        expect(customLog.error.calledOnce).to.be.true;
-        expect(customLog.error.getCall(0).args[0]).to.be.equal("Trying to add something other than Sequenx.Item, use do if you use a function(lapse)");
-        customLog.error.restore();
-    });
-
-    it("should be ignore sequence with no action", function(done) {
-        var seq = new Sequenx.Sequence(customLog);
-        sinon.spy(customLog, "info");
-        var item = new Sequenx.Item(null, "empty");
-        item.action = null;
-        seq.add(item);
-        seq.onCompleted(() => {
-            expect(customLog.info.getCall(0).args[0]).to.be.equal("Message: empty");
-            done();
+    describe("Log test", function() {
+        it("should be able to retrieve log name", function() {
+            var seq = new Sequenx.Sequence("seq");
+            expect(seq.name).to.equal("seq");
         });
-        seq.start();
-        customLog.info.restore();
+
+        it("should be log error if try add other then Sequenx.Item", function() {
+            var seq = new Sequenx.Sequence(customLog);
+            sinon.spy(customLog, "error");
+            seq.add("error");
+            expect(customLog.error.calledOnce).to.be.true;
+            expect(customLog.error.getCall(0).args[0]).to.be.equal("Trying to add something other than Sequenx.Item, use do if you use a function(lapse)");
+            customLog.error.restore();
+        });
     });
+
 });
