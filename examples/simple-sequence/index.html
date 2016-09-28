@@ -1,66 +1,50 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>Sequenx-js -- Simple Lapse Example</title>
 	<meta charset="UTF-8">
 
-  <script src="../../js/rx.lite.min.js"></script>
-	<script src="../../js/sequenx.js"></script>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
 
-<script>
+	<script src="../../dist/sequenx.js"></script>
 
-var lapse;
+</head>
+
+<body>
+
+	<script>
+
+var sequence;
 
 function start() {
 
-	lapse = new Sequenx.Lapse('simple-lapse-sequence');
-  var sequence = new Sequenx.Sequence('simple-sequence', lapse);
+  sequence = new Sequenx.Sequence('simple-sequence');
 
-  var subscription = sequence.completed.subscribe(
-    function (x) { console.warn('Sequence item finished: %s', x); },
-    function (e) { console.log('onError: %s', e); },
-    function () {
-      console.log('Sequence %s completed!', sequence.name);
+	sequence.do(createRandomDiv, 'createRandomDiv1');
+	sequence.do(createRandomDiv, 'createRandomDiv2');
+	sequence.do(createRandomDiv, 'createRandomDiv3');
+	sequence.doWait(1000, 'waitForOneSecond');
+
+	sequence.start(()=>{
+			console.log('Sequence %s completed!', sequence.name);
       sequence.dispose();
       complete();
-    }
-  );
-
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv1');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv2');
-	sequence.add(waitForOneSecond, 'waitForOneSecond');
-	sequence.add(createRandomDiv, 'createRandomDiv3');
-
-	sequence.start();
-
-	lapse.start();
+	});
 }
 
-function waitForOneSecond(lapse)
+function createRandomDiv(done)
 {
-	console.log('waitForOneSecond!', lapse.name);
-	var disposable1 = lapse.extend('timer-1000');
-  setTimeout(function(){ disposable1.dispose() }, 1000);
-}
-
-function createRandomDiv(lapse)
-{
-	console.log('createRandomDiv!', lapse.name);
-	var disposable = lapse.extend('create-random-div');
+	console.log('createRandomDiv!');
 
 	var div = document.createElement('div');
-	div.style.position = "absolute";
-	div.style.width = "50px";
-	div.style.height = "50px";
+	div.classList.add("anim")
+	div.addEventListener("animationend", done, false);
 	document.body.appendChild(div);
 	var xy = getRandomPosition(div);
 	div.style.top = xy[0] + 'px';
 	div.style.left = xy[1] + 'px';
 	div.style.backgroundColor = "#" + ((1 << 24) * Math.random() | 0).toString(16);
-
-	disposable.dispose();
 }
 
 function getRandomPosition(element) {
@@ -74,16 +58,13 @@ function getRandomPosition(element) {
 
 function complete()
 {
-  console.log('Lapse is completed, now do stuffs');
+  console.log('Sequence is completed, now do stuffs');
   document.body.style.backgroundColor = '#00FF00';
 }
 
 start();
 
 </script>
-</head>
-<body>
-
 </body>
 
 </html>

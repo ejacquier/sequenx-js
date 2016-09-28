@@ -4,79 +4,57 @@
 	<title>Sequenx-js -- Simple Lapse Example</title>
 	<meta charset="UTF-8">
 
-  <script src="../../js/rx.lite.min.js"></script>
-	<script src="../../js/sequenx.js"></script>
-
+	<script src="../../dist/sequenx.js"></script>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
 <script>
 
 function start() {
 
-	var lapse = new Sequenx.Lapse('simple-lapse-sequence');
-  var sequence = new Sequenx.Sequence('simple-sequence', lapse);
+  var sequence = new Sequenx.Sequence('simple-sequence');
 
-  var subscription = sequence.completed.subscribe(
-    function (x) { console.warn('Sequence item finished: %s', x); },
-    function (e) { console.log('onError: %s', e); },
-    function () {
+	sequence.doWait(1000, 'waitForOneSecond3');
+	sequence.do(createRandomDiv, 'createRandomDiv0');
+
+	sequence.doParallel(function (p){
+		p.do(createRandomDiv, 'parallel-createRandomDiv1');
+		p.do(createRandomDiv, 'parallel-createRandomDiv2');
+		p.do(createRandomDiv, 'parallel-createRandomDiv3');
+		p.do(createRandomDiv, 'parallel-createRandomDiv4');
+		p.do(createRandomDiv, 'parallel-createRandomDiv5');
+		p.doWait(1500);
+	}, "simple-parallel");
+
+	sequence.doWait(1000, 'waitForOneSecond3');
+	sequence.do(createRandomDiv, 'createRandomDiv3');
+	sequence.do(createRandomDiv, 'createRandomDiv4');
+
+	sequence.start( function () {
       console.log('Sequence %s completed!', sequence.name);
       sequence.dispose();
       complete();
-    }
-  );
+    });
 
-	sequence.add(waitForOneSecond, 'waitForOneSecond1');
-	sequence.add(waitForOneSecond, 'waitForOneSecond2');
-
-	sequence.addParallel(function (p){
-		p.add(createRandomDiv, 'parallel-createRandomDiv1');
-		p.add(createRandomDiv, 'parallel-createRandomDiv2');
-		p.add(createRandomDiv, 'parallel-createRandomDiv3');
-		p.add(createRandomDiv, 'parallel-createRandomDiv4');
-		p.add(createRandomDiv, 'parallel-createRandomDiv5');
-		p.add(waitForOneSecond, 'waitForOneSecond-prallel');
-	}, "simple-parallel");
-
-	sequence.add(waitForOneSecond, 'waitForOneSecond3');
-	sequence.add(createRandomDiv, 'createRandomDiv3');
-	sequence.add(waitForOneSecond, 'waitForOneSecond4');
-	sequence.add(createRandomDiv, 'createRandomDiv4');
-	sequence.add(waitForOneSecond, 'waitForOneSecond5');
-	sequence.add(createRandomDiv, 'createRandomDiv5');
-	sequence.add(waitForOneSecond, 'waitForOneSecond6');
-	sequence.add(createRandomDiv, 'createRandomDiv6');
-	sequence.add(waitForOneSecond, 'waitForOneSecond7');
-	sequence.add(createRandomDiv, 'createRandomDiv7');
-	sequence.add(createRandomDiv, 'createRandomDiv8');
-
-	sequence.start();
-
-	lapse.dispose();
 }
 
 function waitForOneSecond(lapse)
 {
 	//console.log('waitForOneSecond!', lapse.name);
-	var disposable1 = lapse.extend('timer-1000');
+	var disposable1 = lapse.sustain('timer-1000');
   setTimeout(function(){ disposable1.dispose() }, 1000);
 }
 
-function createRandomDiv(lapse)
+function createRandomDiv(done)
 {
-	//console.log('createRandomDiv!', lapse.name);
-	var disposable = lapse.extend('create-random-div');
+	console.log('createRandomDiv!');
 
 	var div = document.createElement('div');
-	div.style.position = "absolute";
-	div.style.width = "50px";
-	div.style.height = "50px";
+	div.classList.add("anim")
+	div.addEventListener("animationend", done, false);
 	document.body.appendChild(div);
 	var xy = getRandomPosition(div);
 	div.style.top = xy[0] + 'px';
 	div.style.left = xy[1] + 'px';
 	div.style.backgroundColor = "#" + ((1 << 24) * Math.random() | 0).toString(16);
-
-
-	disposable.dispose();
 }
 
 function getRandomPosition(element) {

@@ -13,6 +13,7 @@ var lapse;
 
 function start() {
 
+	Sequenx.Lapse.VERBOSE = true;
   //Create a lapse
   lapse = new Sequenx.Lapse('simple-lapse');
 
@@ -26,23 +27,19 @@ function start() {
     }
   );
 
-	var extensionCompleted = lapse.extensionCompleted.subscribe(
-			function (x) { console.warn('Lapse extension finished: %s', x); }
-	);
-
   extendLapse(lapse);
   lapse.start();
 }
 
 function extendLapse(lapse)
 {
-  // Simplest usage is to extend and then dispose when done
-  var disposable1 = lapse.extend('timer-3000');
+  // Simplest usage is to sustain and then dispose when done
+  var disposable1 = lapse.sustain('timer-3000');
   setTimeout(function(){ disposable1.dispose() }, 3000);
 
-  // You can extend as many time as you want, they will be executed in parallel
+  // You can sustain as many time as you want, they will be executed in parallel
   // lapse.completed will always be called when all extension are finished
-  var disposable2 = lapse.extend('timer-6000');
+  var disposable2 = lapse.sustain('timer-6000');
   setTimeout(function(){ disposable2.dispose() }, 6000);
 }
 
