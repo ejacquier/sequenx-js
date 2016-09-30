@@ -45,7 +45,9 @@ var Sequenx;
 var Sequenx;
 (function (Sequenx) {
     var Sequence = (function () {
-        function Sequence(nameOrLog) {
+        function Sequence(nameOrLog, autoStart) {
+            if (autoStart === void 0) { autoStart = false; }
+            this.autoStart = autoStart;
             this._pendingExecution = Sequenx.Disposable.empty;
             this._items = new Array();
             this._isStarted = false;
@@ -58,6 +60,8 @@ var Sequenx;
                 this._log = new Sequenx.Log(nameOrLog);
             else
                 this._log = nameOrLog;
+            if (autoStart)
+                setTimeout(this.start.bind(this), 0);
         }
         Object.defineProperty(Sequence.prototype, "name", {
             get: function () {
@@ -78,11 +82,16 @@ var Sequenx;
                 throw new Error("Trying to add action to a disposed sequence.");
             this._items.push(item);
         };
+        Sequence.prototype.onCompleted = function (cb) {
+            this._cbComplete = cb;
+        };
         Sequence.prototype.start = function (cb) {
             if (this._isStarted || this._isDisposed)
                 return;
+            if (this._isCompleted && cb)
+                cb();
             this._isStarted = true;
-            this._cbComplete = cb;
+            this._cbComplete = cb || this._cbComplete;
             this.scheduleNext();
         };
         Sequence.prototype.scheduleNext = function () {
@@ -159,7 +168,7 @@ var Sequenx;
         };
         Sequence.prototype.doSequence = function (action, message) {
             message = message ? message : "Sequence";
-            var sequence = new Sequence();
+            var sequence = new Sequence(message);
             action(sequence);
             this.add(sequence);
             return this;
@@ -195,8 +204,9 @@ var Sequenx;
 (function (Sequenx) {
     var Parallel = (function (_super) {
         __extends(Parallel, _super);
-        function Parallel() {
-            _super.call(this);
+        function Parallel(nameOrLog, autoStart) {
+            if (autoStart === void 0) { autoStart = false; }
+            _super.call(this, nameOrLog, autoStart);
         }
         Parallel.prototype.scheduleNext = function () {
             var _this = this;
@@ -245,16 +255,25 @@ var Sequenx;
     var RefCountDisposable = (function (_super) {
         __extends(RefCountDisposable, _super);
         function RefCountDisposable(disposable) {
-            var _this = this;
-            _super.call(this, function () { return _this._self.dispose(); });
+            _super.call(this, function () { });
             this.disposable = disposable;
             this._count = 0;
-            this._self = this.getDisposable();
         }
+        RefCountDisposable.prototype.dispose = function () {
+            if (!this._isPrimaryDisposed && !this._isDisposed) {
+                this._isPrimaryDisposed = true;
+                if (this._count <= 0) {
+                    this._isDisposed = true;
+                    this.disposable.dispose();
+                }
+            }
+        };
         RefCountDisposable.prototype.getDisposable = function () {
             var _this = this;
+            if (this._isDisposed)
+                return Disposable.empty;
             this._count++;
-            return this.isDisposed ? Disposable.empty : Disposable.create(function () {
+            return Disposable.create(function () {
                 _this._count--;
                 if (_this._count <= 0)
                     _this.disposable.dispose();
@@ -267,8 +286,10 @@ var Sequenx;
 var Sequenx;
 (function (Sequenx) {
     var Lapse = (function () {
-        function Lapse(nameOrLog) {
+        function Lapse(nameOrLog, autoStart) {
             var _this = this;
+            if (autoStart === void 0) { autoStart = false; }
+            this.autoStart = autoStart;
             if (!nameOrLog)
                 this._log = new Sequenx.Log("");
             else if (typeof nameOrLog === "string")
@@ -276,6 +297,8 @@ var Sequenx;
             else
                 this._log = nameOrLog;
             this._refCountDisposable = new Sequenx.RefCountDisposable(Sequenx.Disposable.create(function () { return _this.lapseCompleted(); }));
+            if (autoStart)
+                setTimeout(function () { return _this.start(); }, 0);
         }
         Object.defineProperty(Lapse.prototype, "name", {
             get: function () {
@@ -294,11 +317,14 @@ var Sequenx;
                 this._log.info("Sustain " + name);
             return this._refCountDisposable.getDisposable();
         };
+        Lapse.prototype.onCompleted = function (cb) {
+            this._completed = cb;
+        };
         Lapse.prototype.start = function (cb) {
             if (this._isStarted || this._isCompleted || this._isDisposed)
                 return;
             this._isStarted = true;
-            this._completed = cb;
+            this._completed = cb || this._completed;
             this._refCountDisposable.dispose();
         };
         Lapse.prototype.dispose = function () {
@@ -447,10 +473,7 @@ var Sequenx;
 var Sequenx;
 (function (Sequenx) {
     Sequenx.Sequence.prototype.doPromise = function (action) {
-        if (action instanceof Promise)
-            this.do(function (done) { return action.then(function (v) { return done(); }); });
-        else
-            this.do(function (done) { return action().then(function (v) { return done(); }); });
+        this.do(function (done) { return action().then(function (v) { return done(); }); });
         return this;
     };
     Sequenx.Sequence.prototype.startPromise = function () {
@@ -458,7 +481,6 @@ var Sequenx;
         return new Promise(function (resolve) { return _this.start(resolve); });
     };
 })(Sequenx || (Sequenx = {}));
-
-if (typeof module !== 'undefined' && module.exports)
-    module.exports = Sequenx;
-
+Promise.prototype.start = function (cb) {
+    this.then(cb);
+};

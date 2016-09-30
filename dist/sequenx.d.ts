@@ -39,8 +39,10 @@ declare module Sequenx {
         skipToEnd(): void;
         skip(predicate: (item: ISequenceItem) => Boolean): void;
         skipTo(predicate: (item: ISequenceItem) => boolean): void;
+        onCompleted(cb: () => void): any;
     }
     class Sequence implements Sequence {
+        private autoStart;
         private _log;
         private _pendingExecution;
         protected _items: Array<ISequenceItem>;
@@ -50,10 +52,10 @@ declare module Sequenx {
         private _isExecuting;
         protected _cbComplete: () => void;
         name: string;
-        constructor(nameOrLog?: string | ILog);
+        constructor(nameOrLog?: string | ILog, autoStart?: boolean);
         getChildLog(name: string): ILog;
         add(item: ISequenceItem): void;
-        start(cb: () => void): void;
+        start(cb?: () => void): void;
         protected scheduleNext(): void;
         private executeNext();
         protected onLastItemCompleted(): void;
@@ -68,7 +70,7 @@ declare module Sequenx {
     }
     class Parallel extends Sequence implements Parallel, ISequenceItem {
         message: string;
-        constructor();
+        constructor(nameOrLog?: string | ILog, autoStart?: boolean);
         scheduleNext(): void;
         skip(predicate: (item: ISequenceItem) => boolean): void;
         skipTo(predicate: (item: ISequenceItem) => boolean): void;
@@ -82,7 +84,7 @@ declare module Sequenx {
         action: () => void;
         static empty: Disposable;
         static create(action: () => void): Disposable;
-        private _isDisposed;
+        protected _isDisposed: boolean;
         constructor(action?: () => void);
         isDisposed: boolean;
         dispose(): void;
@@ -90,8 +92,9 @@ declare module Sequenx {
     class RefCountDisposable extends Disposable {
         private disposable;
         private _count;
-        private _self;
+        private _isPrimaryDisposed;
         constructor(disposable: Disposable);
+        dispose(): void;
         getDisposable(): IDisposable;
     }
 }
@@ -106,6 +109,7 @@ declare module Sequenx {
 }
 declare module Sequenx {
     class Lapse implements ILapse, ISequenceItem {
+        private autoStart;
         private _log;
         private _isStarted;
         private _isDisposed;
@@ -113,10 +117,11 @@ declare module Sequenx {
         private _refCountDisposable;
         private _completed;
         name: string;
-        constructor(nameOrLog?: string | ILog);
+        constructor(nameOrLog?: string | ILog, autoStart?: boolean);
         getChildLog(name: string): ILog;
         sustain(name?: string): IDisposable;
-        start(cb: () => void): void;
+        onCompleted(cb: () => void): void;
+        start(cb?: () => void): void;
         dispose(): void;
         private lapseCompleted();
         sequence(action: (seq: Sequence) => void, message?: string): Sequence;
@@ -166,7 +171,10 @@ declare module Sequenx {
 }
 declare module Sequenx {
     interface Sequence {
-        doPromise(action: Promise<any> | (() => Promise<any>)): Sequence;
+        doPromise(action: () => Promise<any>): Sequence;
         startPromise(): Promise<any>;
     }
+}
+interface Promise<T> extends Sequenx.ISequenceItem {
+    start(cb?: () => void): any;
 }
