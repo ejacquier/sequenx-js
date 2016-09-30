@@ -13,7 +13,7 @@ module Sequenx
         {
             return new Disposable(action);
         }
-        private _isDisposed: boolean = false;
+        protected _isDisposed: boolean = false;
 
         constructor(public action?: () => void) { }
 
@@ -32,18 +32,33 @@ module Sequenx
     export class RefCountDisposable extends Disposable
     {
         private _count: number = 0;
-        private _self: IDisposable;
+        private _isPrimaryDisposed: boolean;
 
         constructor(private disposable: Disposable)
         {
-            super(() => this._self.dispose());
-            this._self = this.getDisposable();
+            super(() => { });
+        }
+
+        dispose(): void
+        {
+            if (!this._isPrimaryDisposed && !this._isDisposed)
+            {
+                this._isPrimaryDisposed = true;
+                if (this._count <= 0)
+                {
+                    this._isDisposed = true;
+                    this.disposable.dispose();
+                }
+            }
         }
 
         getDisposable(): IDisposable
         {
+            if (this._isDisposed)
+                return Disposable.empty;
+
             this._count++;
-            return this.isDisposed ? Disposable.empty : Disposable.create(() =>
+            return Disposable.create(() =>
             {
                 this._count--;
                 if (this._count <= 0)
